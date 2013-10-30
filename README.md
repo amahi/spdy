@@ -1,4 +1,3 @@
-
 This is a library for building SPDY clients and servers in Go, supporting [SPDY 3.1](http://www.chromium.org/spdy/spdy-protocol/spdy-protocol-draft3-1).
 
 The goals for the library are reliability, streaming and performance.
@@ -14,7 +13,7 @@ Architecture
 
 The library is broken down in `Session` objects and `Stream` objects as far as the external interface. 
 
-[![SPDY Library Architecture](img/spdy-arch.png)]
+![SPDY Library Architecture](img/spdy-arch.png)
 
 Each Session controls the communication between two net.Conn connected endpoints. Each Session has a server loop and in it there are two goroutines, one for sending frames from the network connection and one for receiving frames from it. These two goroutines are designed to never block. Except of course if there are network issues, which break the Session and all Streams in the Session.
 
@@ -22,7 +21,7 @@ Each Stream has a server and in it there are two goroutines, a Northbound Buffer
 
 In the end there are two copies of these stacks, one on each side of the connection.
 
-[![HTTP and SPDY](img/end-to-end-http.png)]
+![HTTP and SPDY](img/end-to-end-http.png)
 
 Examples
 ========
