@@ -69,5 +69,5 @@ Credits
 
 Credit goes to Jamie Hall for the patience and persistance to debug his excellent SPDY library that lead to the creation of this library.
 
-Some isolated code like the header compression comes from Jamie's library as well as other libraries out there that we used for inspiration. The header dictionary table comes from the SPDY spec definition.
+The library was started from scratch, but some isolated code like the header compression comes from Jamie's library as well as other libraries out there that we used for inspiration. The header dictionary table comes from the SPDY spec definition.
 
