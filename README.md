@@ -2,7 +2,7 @@ Amahi SPDY is a library built from scratch in the "Go way" for building SPDY cli
 
 It supports [SPDY 3.1](http://www.chromium.org/spdy/spdy-protocol/spdy-protocol-draft3-1).
 
-Check the online [documentation](http://godoc.org/github.com/amahi/spdy).
+Check the online [documentation](http://godoc.org/github.com/amahi/spdy) (admittedly small but growing).
 
 The goals for the library are reliability, streaming and performance/scalability.
 
