@@ -18,7 +18,11 @@ import (
 	"time"
 )
 
-// new server session
+// NewServerSession creates a new Session with the given network connection.
+// This Session should be used as a server, and the given http.Server will be
+// used to serve requests arriving.  The user should call Serve() once it's
+// ready to start serving. New streams will be created as per the SPDY
+// protocol.
 func NewServerSession(conn net.Conn, server *http.Server) *Session {
 	s := &Session{
 		conn:         conn,
@@ -38,7 +42,10 @@ func NewServerSession(conn net.Conn, server *http.Server) *Session {
 	return s
 }
 
-// new client session
+// NewClientSession creates a new Session that should be used as a client.
+// the given http.Server will be used to serve requests arriving.  The user
+// should call Serve() once it's ready to start serving. New streams will be
+// created as per the SPDY protocol.
 func NewClientSession(conn net.Conn) *Session {
 	s := &Session{
 		conn:         conn,
@@ -58,6 +65,8 @@ func NewClientSession(conn net.Conn) *Session {
 	return s
 }
 
+// Serve starts serving a Session. This implementation of Serve only returns
+// when there has been an error condition.
 func (s *Session) Serve() (err error) {
 
 	debug.Println("Session server started")
@@ -127,6 +136,8 @@ func (s *Session) session_loop(sender_done, receiver_done <-chan bool) (err erro
 	}
 }
 
+// Close closes the Session and the underlaying network connection.
+// It should be called when the Session is idle for best results.
 func (s *Session) Close() {
 	// FIXME - what else do we need to do here?
 	if s.closed {
@@ -360,8 +371,9 @@ func no_panics() {
 	}
 }
 
-// Ping issues a ping and returns true if it pinged within the duration. else it returns false
-// NOTE only one outstanting ping works in this implementation!
+// Ping issues a SPDY PING frame and returns true if it the other side returned
+// the PING frame within the duration, else it returns false. NOTE only one
+// outstanting ping works in the current implementation.
 func (s *Session) Ping(d time.Duration) (pinged bool) {
 
 	// increase the next ping id

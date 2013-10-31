@@ -23,7 +23,7 @@ import (
 const INITIAL_FLOW_CONTOL_WINDOW int32 = 64 * 1024
 const NORTHBOUND_SLOTS = 5
 
-// start a new stream with the given request
+// NewClientStream starts a new Stream (in the given Session), to be used as a client
 func (s *Session) NewClientStream() *Stream {
 	str := &Stream{
 		id:                s.nextStreamID(),
@@ -87,6 +87,7 @@ func (s *Session) newServerStream(frame controlFrame) (str *Stream, err error) {
 	return
 }
 
+// String returns the Stream ID of the Stream
 func (s *Stream) String() string {
 	return fmt.Sprintf("%d", s.id)
 }
@@ -209,7 +210,8 @@ func (s *Stream) handleRequest(request *http.Request) (err error) {
 	return nil
 }
 
-// make an initial request that gets a client stream running
+// Request makes an http request down the client that gets a client Stream
+// started and returning the request in the ResponseWriter
 func (s *Stream) Request(request *http.Request, writer http.ResponseWriter) (err error) {
 
 	s.response_writer = writer
@@ -417,11 +419,10 @@ func (s *Stream) stream_loop() (err error) {
 	}
 }
 
-//====================================================
-// make stream compatible with http handlers interface
-//====================================================
+// Header makes streams compatible with the net/http handlers interface
 func (s *Stream) Header() http.Header { return s.headers }
 
+// Write makes streams compatible with the net/http handlers interface
 func (s *Stream) Write(p []byte) (n int, err error) {
 	if s.closed {
 		err = errors.New(fmt.Sprintf("Stream #%d: write on closed stream!", s.id))
@@ -468,6 +469,7 @@ func (s *Stream) Write(p []byte) (n int, err error) {
 	return
 }
 
+// WriteHeader makes streams compatible with the net/http handlers interface
 func (s *Stream) WriteHeader(code int) {
 	if s.wroteHeader {
 		log.Println("ERROR: Multiple calls to ResponseWriter.WriteHeader.")
@@ -603,7 +605,8 @@ func (s *Stream) northboundBufferSender() {
 	debug.Printf("Stream #%d: northboundBufferSender done!", s.id)
 }
 
-// this is to allow the data of a request to become the body of a response
+// Close does nothing and is here only to allow the data of a request to become
+// the body of a response
 func (r *readCloser) Close() error { return nil }
 
 func (s *Stream) handleRstStream(frame controlFrame) (err error) {
@@ -623,7 +626,7 @@ func (s *Stream) handleRstStream(frame controlFrame) (err error) {
 	return nil
 }
 
-// WINDOW_UPDATE from the other side
+// handle WINDOW_UPDATE from the other side
 func (s *Stream) handleWindowUpdate(frame controlFrame) {
 
 	debug.Println("Stream server got WINDOW_UPDATE")

@@ -12,6 +12,8 @@ import (
 	"syscall"
 )
 
+// PriorityFor returns the recommended priority for the given URL
+// for best opteration with the library.
 func PriorityFor(req *url.URL) uint8 {
 	// FIXME: need to implement priorities properly
 	return 4

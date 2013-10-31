@@ -10,7 +10,9 @@ import (
 	"net/http"
 )
 
-// start a new stream and proxy the given request to it
+// NewStreamProxy starts a new stream and proxies the given HTTP Request to
+// it, writing the response to the given ResponseWriter. If there is an error,
+// it will be returned, but the ResponseWriter will get a 404 Not Found.
 func (s *Session) NewStreamProxy(r *http.Request, w http.ResponseWriter) (err error) {
 
 	str := s.NewClientStream()

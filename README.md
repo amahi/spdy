@@ -1,8 +1,10 @@
 Amahi SPDY is a library built from scratch in the "Go way" for building SPDY clients and servers in the Go programming language.
 
-It supports [SPDY 3.1](http://www.chromium.org/spdy/spdy-protocol/spdy-protocol-draft3-1).
+It supports a subset of [SPDY 3.1](http://www.chromium.org/spdy/spdy-protocol/spdy-protocol-draft3-1).
 
-Check the online [documentation](http://godoc.org/github.com/amahi/spdy) (admittedly small but growing).
+Check the online [documentation](http://godoc.org/github.com/amahi/spdy) (admittedly small, but growing).
+
+This library is used in a streaming server/proxy implementation for Amahi, the [home and media server](https://www.amahi.org).
 
 The goals for the library are reliability, streaming and performance/scalability.
 
@@ -15,7 +17,7 @@ The goals for the library are reliability, streaming and performance/scalability
 Architecture
 ============
 
-The library is broken down in `Session` objects and `Stream` objects as far as the external interface. Each Session and Stream may have multiple goroutines and channels to manage their structure and communication patterns. Here is an overview diagram of how the pieces fit together:
+The library is divided in `Session` objects and `Stream` objects as far as the external interface. Each Session and Stream may have multiple goroutines and channels to manage their structure and communication patterns. Here is an overview diagram of how the pieces fit together:
 
 ![SPDY Library Architecture](img/spdy-arch.png)
 
