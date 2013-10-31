@@ -1,4 +1,6 @@
-Amahi SPSY is a library for building SPDY clients and servers in Go, supporting [SPDY 3.1](http://www.chromium.org/spdy/spdy-protocol/spdy-protocol-draft3-1).
+Amahi SPDY is a library for building SPDY clients and servers in Go, supporting [SPDY 3.1](http://www.chromium.org/spdy/spdy-protocol/spdy-protocol-draft3-1).
+
+Check the only [documentation](http://godoc.org/github.com/amahi/spdy).
 
 The goals for the library are reliability, streaming and performance.
 
@@ -7,8 +9,6 @@ The goals for the library are reliability, streaming and performance.
 2) Streaming, unlike typical HTTP requests (which are short), requires working with an arbitrary large number of open streams simultaneously, and most of them are flow-constrained at the client endpoint. Streaming clients kind of misbehave too, for example, they open and close many streams rapidly with `Range` request to check certain parts of the file. This is common with endpoint clients like [VLC](https://videolan.org/vlc/) or [Quicktime](https://www.apple.com/quicktime/) (Safari on iOS or Mac OS X). We have tested this library fairly intensely with streaming clients.
 
 3) The library was built with performance and scalability in mind, so things have been done using as little blocking and copying of data as possible. It was meant to be implemented in the "go way", using concurrency extensively and channel communication. The library uses mutexes very sparingly so that handling of errors at all manner of inapropriate times becomes easier. It goes to great lengths to not block, establishing timeouts when network and even channel communication may fail. The library should use very very little CPU, even in the presence of many streams and sessions running simultaneously.
-
-Check the [documentation](http://laughingsquid.com/animation-of-orson-welles-notorious-frozen-peas-rant/).
 
 Architecture
 ============
