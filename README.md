@@ -14,6 +14,8 @@ The goals for the library are reliability, streaming and performance/scalability
 
 3) The library was built with performance and scalability in mind, so things have been done using as little blocking and copying of data as possible. It was meant to be implemented in the "go way", using concurrency extensively and channel communication. The library uses mutexes very sparingly so that handling of errors at all manner of inapropriate times becomes easier. It goes to great lengths to not block, establishing timeouts when network and even channel communication may fail. The library should use very very little CPU, even in the presence of many streams and sessions running simultaneously.
 
+This is not to say SPDY compliance/feature-completeness is not a priority. We're definitely interested in that, so that is an good area for contributions.
+
 Architecture
 ============
 
@@ -37,11 +39,17 @@ We have a [reference implementation](https://github.com/amahi/spdy-proxy) of cli
 Testing
 =======
 
-It has been tested by building a the reference proxy and origin server and exercising them with multiple streaming clients, manually stressing of the proxy and origin server.
+The library needs more directed, white-box tests. Most of the testing has been black-box testing. It has been tested as follows:
 
-The reference implementation above also contains some [integration tests](https://github.com/amahi/spdy-proxy/tree/master/integration-tests). These do not cover a lot in terms of stressing the library, but are a great baseline.
+1) Building a reference proxy and an origin server, exercising them with multiple streaming clients, stressing them with many streams in parallel.
+
+2) The reference implementation above also contains some [integration tests](https://github.com/amahi/spdy-proxy/tree/master/integration-tests). These do not cover a lot in terms of stressing the library, but are a great baseline.
 
 As such, the integration tests should be considered more like sanity checks. We're interested in contributions that cover more and more edge cases!
+
+3) We periorically run apps built with this library, with the [Go race detector](http://blog.golang.org/race-detector) enabled. We no longer found any more race conditions.
+
+We'd like to beef up the testing to make it scale!
 
 Status
 ======
