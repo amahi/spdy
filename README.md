@@ -1,4 +1,6 @@
-Amahi SPDY is a library built from scratch in the "Go way" for building SPDY clients and servers in the Go programming language.
+Amahi SPDY is a library built from scratch in the "Go way" for building SPDY clients and servers in the Go programming language. Here is a high-level picture of how it's structured:
+
+![SPDY Library Architecture](img/spdy-arch.png)
 
 It supports a subset of [SPDY 3.1](http://www.chromium.org/spdy/spdy-protocol/spdy-protocol-draft3-1).
 
