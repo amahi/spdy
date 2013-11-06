@@ -1,3 +1,6 @@
+Amahi SPDY [![Build Status](https://travis-ci.org/amahi/spdy.png?branch=master)](https://travis-ci.org/amahi/spdy)
+==========
+
 Amahi SPDY is a library built from scratch in the "Go way" for building SPDY clients and servers in the Go programming language. Here is a high-level picture of how it's structured:
 
 ![SPDY Library Architecture](img/spdy-arch.png)
