@@ -7,6 +7,7 @@
 package spdy
 
 import (
+	"fmt"
 	"net"
 	"net/url"
 	"syscall"
@@ -35,4 +36,12 @@ func isBrokenPipe(err error) bool {
 		return e.Err == syscall.EPIPE
 	}
 	return false
+}
+
+// return best guess at a string for a network error
+func netErrorString(err error) string {
+	if e, ok := err.(*net.OpError); ok {
+		return fmt.Sprintf("%s", e.Err)
+	}
+	return fmt.Sprintf("%#v", err)
 }

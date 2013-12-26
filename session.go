@@ -189,7 +189,7 @@ func (s *Session) receive() (f frame, e error) {
 }
 
 // frameReceiver takes a channel and receives frames, sending them to
-// the network connection it until there is an error
+// the network connection until there is an error
 func (s *Session) frameReceiver(incoming chan<- frame, done chan<- bool) {
 	defer no_panics()
 
@@ -201,7 +201,7 @@ func (s *Session) frameReceiver(incoming chan<- frame, done chan<- bool) {
 		}
 		if err != nil {
 			// some other communication error? we want to see it
-			log.Printf("WARN: communication error: %#v", err)
+			log.Printf("WARN: communication error: %s", netErrorString(err))
 			break
 		}
 		if frame == nil {
