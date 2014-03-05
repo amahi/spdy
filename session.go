@@ -143,8 +143,9 @@ func (s *Session) Close() {
 		debug.Println("WARNING: session was already closed - why?")
 		return
 	}
+
 	s.closed = true
-	
+
 	// in case any of the closes below clashes
 	defer no_panics()
 
