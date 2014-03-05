@@ -75,10 +75,10 @@ func (s *Session) Serve() (err error) {
 	sender_done := make(chan bool)
 
 	// start frame sender
-	go s.frameSender(s.out, sender_done)
+	go s.frameSender(sender_done, s.out)
 
 	// start frame receiver
-	go s.frameReceiver(s.in, receiver_done)
+	go s.frameReceiver(receiver_done, s.in)
 
 	// start serving loop
 	err = s.session_loop(sender_done, receiver_done)
@@ -91,7 +91,6 @@ func (s *Session) Serve() (err error) {
 	}
 
 	// close this session
-	s.closed = true
 	s.Close()
 	debug.Println("Session closed. Session server done.")
 
@@ -144,7 +143,8 @@ func (s *Session) Close() {
 		debug.Println("WARNING: session was already closed - why?")
 		return
 	}
-
+	s.closed = true
+	
 	// in case any of the closes below clashes
 	defer no_panics()
 
@@ -164,7 +164,7 @@ func (s *Session) nextStreamID() streamID {
 // frameSender takes a channel and gets each of the frames coming from
 // it and sends them down the session connection, until the channel
 // is closed or there are errors in sending over the network
-func (s *Session) frameSender(in <-chan frame, done chan<- bool) {
+func (s *Session) frameSender(done chan<- bool, in <-chan frame) {
 	for f := range in {
 		s.conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
 		_, err := f.Write(s.conn)
@@ -190,7 +190,7 @@ func (s *Session) receive() (f frame, e error) {
 
 // frameReceiver takes a channel and receives frames, sending them to
 // the network connection until there is an error
-func (s *Session) frameReceiver(incoming chan<- frame, done chan<- bool) {
+func (s *Session) frameReceiver(done chan<- bool, incoming chan<- frame) {
 	defer no_panics()
 
 	for {
