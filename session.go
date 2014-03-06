@@ -82,6 +82,9 @@ func (s *Session) Serve() (err error) {
 
 	// start serving loop
 	err = s.session_loop(sender_done, receiver_done)
+	if err != nil {
+		log.Printf("ERROR: %s", netErrorString(err))
+	}
 
 	// force removing all existing streams
 	for i := range s.streams {
@@ -196,13 +199,12 @@ func (s *Session) frameReceiver(done chan<- bool, incoming chan<- frame) {
 
 	for {
 		frame, err := s.receive()
-		if err == io.EOF || isConnReset(err) {
+		if err == isConnReset(err) {
 			// normal reasons, like disconnection, etc.
 			break
 		}
 		if err != nil {
-			// some other communication error? we want to see it
-			log.Printf("WARN: communication error: %s", netErrorString(err))
+			// some other communication error
 			break
 		}
 		if frame == nil {
