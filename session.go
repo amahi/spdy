@@ -199,7 +199,7 @@ func (s *Session) frameReceiver(done chan<- bool, incoming chan<- frame) {
 
 	for {
 		frame, err := s.receive()
-		if err == isConnReset(err) {
+		if isConnReset(err) {
 			// normal reasons, like disconnection, etc.
 			break
 		}
