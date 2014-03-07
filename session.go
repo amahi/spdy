@@ -205,6 +205,7 @@ func (s *Session) frameReceiver(done chan<- bool, incoming chan<- frame) {
 		}
 		if err != nil {
 			// some other communication error
+			log.Printf("WARN: communication error: %s", netErrorString(err))
 			break
 		}
 		if frame == nil {
