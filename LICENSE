@@ -1,3 +1,9 @@
+This library is provided with the GNU LGPL licence (listed below),
+with the explicit exception of permitting static linking inr Go
+works incorporating this library. This eliminates the requirement that
+you must provide your application in an object format to allow
+for modifying the library and relinking the application.
+
 GNU LESSER GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
