@@ -137,11 +137,16 @@ func writeFrame(w io.Writer, head []interface{}, data []byte) (n int, err error)
 	})
 	n += nn
 	if err != nil {
+		log.Println("Write failed:", err)
 		return
 	}
 	// Data
 	if length > 0 {
 		nn, err = w.Write(data)
+		if err != nil {
+			log.Println("Write failed:", err)
+			return
+		}
 		n += nn
 	}
 	return
@@ -151,6 +156,7 @@ func writeBinary(r io.Writer, args ...interface{}) (err error) {
 	for _, a := range args {
 		err = binary.Write(r, binary.BigEndian, a)
 		if err != nil {
+			log.Println("binary.Write failed:", err)
 			return
 		}
 	}
@@ -166,6 +172,7 @@ func readFrame(r io.Reader) (f frame, err error) {
 	headBuffer := new(bytes.Buffer)
 	_, err = io.CopyN(headBuffer, r, 5)
 	if err != nil {
+		log.Println("io.CopyN failed:", err)
 		return
 	}
 	if headBuffer.Bytes()[0]&0x80 == 0 {
@@ -196,6 +203,7 @@ func readBinary(r io.Reader, args ...interface{}) (err error) {
 	for _, a := range args {
 		err = binary.Read(r, binary.BigEndian, a)
 		if err != nil {
+			log.Println("binary.Read failed:", err)
 			return
 		}
 	}
@@ -206,6 +214,7 @@ func readData(r io.Reader) (data []byte, err error) {
 	lengthField := make([]byte, 3)
 	_, err = io.ReadFull(r, lengthField)
 	if err != nil {
+		log.Println("io.ReadFull failed:", err)
 		return
 	}
 	var length uint32
@@ -217,6 +226,7 @@ func readData(r io.Reader) (data []byte, err error) {
 		data = make([]byte, int(length))
 		_, err = io.ReadFull(r, data)
 		if err != nil {
+			log.Println("io.ReadFull failed:", err)
 			data = nil
 			return
 		}
