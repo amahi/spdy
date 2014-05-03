@@ -137,11 +137,16 @@ func writeFrame(w io.Writer, head []interface{}, data []byte) (n int, err error)
 	})
 	n += nn
 	if err != nil {
+		log.Println("Write of length failed:", err)
 		return
 	}
 	// Data
 	if length > 0 {
 		nn, err = w.Write(data)
+		if err != nil {
+			log.Println("Write of data failed:", err)
+			return
+		}
 		n += nn
 	}
 	return

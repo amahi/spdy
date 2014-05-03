@@ -171,22 +171,11 @@ func (s *Session) frameSender(done chan<- bool, in <-chan frame) {
 		_, err := f.Write(s.conn)
 		if err != nil {
 			log.Println("ERROR in frameSender.Write:", err)
-			done <- true
-			return
+			break
 		}
 	}
+	done <- true
 	debug.Printf("Session sender ended")
-}
-
-func (s *Session) receive() (f frame, e error) {
-	// debug.Println("Waiting to receive frames")
-	f, e = readFrame(s.conn)
-	if e == io.EOF {
-		// EOF is a normal termination
-		// we denote it with frame = nil (and err being nil as well)
-		f, e = nil, nil
-	}
-	return
 }
 
 // frameReceiver takes a channel and receives frames, sending them to
@@ -195,8 +184,8 @@ func (s *Session) frameReceiver(done chan<- bool, incoming chan<- frame) {
 	defer no_panics()
 
 	for {
-		frame, err := s.receive()
-		if err == io.EOF || isConnReset(err) {
+		frame, err := readFrame(s.conn)
+		if err == io.EOF {
 			// normal reasons, like disconnection, etc.
 			break
 		}
@@ -205,15 +194,12 @@ func (s *Session) frameReceiver(done chan<- bool, incoming chan<- frame) {
 			log.Printf("WARN: communication error: %s", netErrorString(err))
 			break
 		}
-		if frame == nil {
-			// normal end of the session
-			break
-		}
 		// ship the frame upstream -- this must be ensured to not block
 		debug.Printf("Session got: %s", frame)
 		incoming <- frame
 	}
 	done <- true
+	debug.Printf("Session receiver ended")
 }
 
 func (s *Session) processControlFrame(frame controlFrame) (err error) {
