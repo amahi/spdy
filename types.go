@@ -131,12 +131,13 @@ type frameSynReply struct {
 const MAX_DATA_PAYLOAD = 1<<24 - 1
 
 const (
-	HEADER_STATUS  string = ":status"
-	HEADER_VERSION string = ":version"
-	HEADER_PATH    string = ":path"
-	HEADER_METHOD  string = ":method"
-	HEADER_HOST    string = ":host"
-	HEADER_SCHEME  string = ":scheme"
+	HEADER_STATUS         string = ":status"
+	HEADER_VERSION        string = ":version"
+	HEADER_PATH           string = ":path"
+	HEADER_METHOD         string = ":method"
+	HEADER_HOST           string = ":host"
+	HEADER_SCHEME         string = ":scheme"
+	HEADER_CONTENT_LENGTH string = "Content-Length"
 )
 
 type readCloser struct {

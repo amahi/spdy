@@ -206,9 +206,52 @@ func (s *Session) frameReceiver(done chan<- bool, incoming chan<- frame) {
 }
 
 func (s *Session) processControlFrame(frame controlFrame) (err error) {
+        
 	switch frame.kind {
 	case FRAME_SYN_STREAM:
-		return s.processSynStream(frame)
+	        err = s.processSynStream(frame)
+	        select{
+                case ns, ok := <-s.new_stream:
+		        // registering a new stream for this session
+		        if ok {
+			        s.streams[ns.id] = ns
+		        } else {
+			        return
+		        }
+	        }
+	        controlflag := 0
+	        // for non-FIN frames wait for data frames
+	        if(!frame.isFIN()){
+	                for controlflag == 0 {
+	                        deadline := time.After(3 * time.Second)
+		                select {
+	                        case f := <-s.in :
+	                        // received a frame
+			        switch fr := f.(type) {
+			        case dataFrame:
+				        //process data frames
+	                                err = s.processDataFrame(fr)
+			                if fr.isFIN() {
+			                        controlflag=1
+			                }
+			                break
+			        case controlFrame:
+				                err = s.processControlFrame(fr)
+			                
+			                }
+			                if err != nil {
+				                return
+			                }
+			                break
+		                case <-deadline:
+		                //unsuccessfully waited for FIN
+			                debug.Println("Waited long enough but no data frames recieved")
+			                controlflag=2
+			                break
+			        }
+	                }
+	        }
+	        return 
 	case FRAME_SYN_REPLY:
 		return s.processSynReply(frame)
 	case FRAME_SETTINGS:
@@ -277,7 +320,6 @@ func (s *Session) processSynReply(frame controlFrame) (err error) {
 
 	// send this control frame to the corresponding stream
 	stream.control <- frame
-
 	return
 }
 
