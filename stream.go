@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"os"
 )
 
 const INITIAL_FLOW_CONTOL_WINDOW int32 = 64 * 1024
@@ -303,9 +304,9 @@ func (s *Stream) initiate_stream(frame controlFrame) (err error) {
 		flags:             frame.flags}
 
 	debug.Println("Processing SYN_STREAM", ss)
+	
 	if frame.isFIN() {
 		// call the handler
-
 		req := &http.Request{
 			Method:     headers.Get(HEADER_METHOD),
 			Proto:      headers.Get(HEADER_VERSION),
@@ -316,12 +317,13 @@ func (s *Stream) initiate_stream(frame controlFrame) (err error) {
 
 		// Clear the headers in the session now that the request has them
 		s.headers = make(http.Header)
-
+                
 		go s.requestHandler(req)
 
 	} else {
+	        //for NON-FIN frames collect all data frames
+	        //Handled POST requests here
 		var data []byte
-
 		endflag := 0
 		for endflag == 0 {
 			deadline := time.After(3 * time.Second)
@@ -347,9 +349,21 @@ func (s *Stream) initiate_stream(frame controlFrame) (err error) {
 				break
 			}
 		}
+		
 		if endflag == 1 {
 			//http request if data frames collected sucessfully
 			// call the handler
+			filename := "/tmp/postdat"
+                        f, err := os.Create(filename)
+                        if err != nil {
+                                debug.Println(err)
+                        }
+                        n, err := f.Write(data)
+                        if err != nil {
+                                debug.Println(n, err)
+                        }
+                        f.Close()
+                        
 			contLen, _ := strconv.Atoi(headers.Get(HEADER_CONTENT_LENGTH))
 			req := &http.Request{
 				Method:        headers.Get(HEADER_METHOD),
