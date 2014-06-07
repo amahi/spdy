@@ -1,12 +1,12 @@
 package main
 
 import (
-        "bytes"
+	"bytes"
 	"fmt"
 	"net"
 	"net/http"
 	//"net/http/httputil"
-	"github.com/amahi/spdy"
+	"github.com/nileshjagnik/spdy"
 )
 
 func handle(err error) {
@@ -14,7 +14,6 @@ func handle(err error) {
 		panic(err)
 	}
 }
-
 
 // ResponseRecorder is an implementation of http.ResponseWriter that
 // records its mutations for later inspection in tests.
@@ -74,21 +73,21 @@ func (rw *ResponseRecorder) Flush() {
 }
 
 func main() {
-        req, err := http.NewRequest("GET", "http://localhost:4040/hello",nil)
+	req, err := http.NewRequest("GET", "http://localhost:4040/hello", nil)
 	handle(err)
-        conn, err := net.Dial("tcp", "localhost:4040")
-        handle(err)
-        spdy.EnableDebug()
-        // make the client connection
-        
+	conn, err := net.Dial("tcp", "localhost:4040")
+	handle(err)
+	spdy.EnableDebug()
+	// make the client connection
+
 	//client := httputil.NewClientConn(conn, nil)
-	
+
 	/*
-	//send hello
-        res, err := client.Do(req)
-        fmt.Println(res.Status)
-        */
-        //hijack for spdy
+			//send hello
+		        res, err := client.Do(req)
+		        fmt.Println(res.Status)
+	*/
+	//hijack for spdy
 	//conn, _ = client.Hijack()
 	session := spdy.NewClientSession(conn)
 	fmt.Println("Ready")
