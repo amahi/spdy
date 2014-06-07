@@ -7,7 +7,7 @@
 package spdy
 
 import (
-        "bytes"
+	"bytes"
 	"io"
 	"net"
 	"net/http"

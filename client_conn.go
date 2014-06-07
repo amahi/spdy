@@ -70,20 +70,21 @@ func (rw *ResponseRecorder) Flush() {
 }
 
 func NewClient(addr string) (*Client, error) {
-        conn, err := net.Dial("tcp", addr)
-        if err != nil {
-                return &Client{},err
-        }
-        return &Client{cn:conn}, nil
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return &Client{}, err
+	}
+	return &Client{cn: conn}, nil
 }
+
 //to get a response from the client
-func (c *Client) Do(req *http.Request) (*http.Response,error) {
-        session := NewClientSession(c.cn)
+func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	session := NewClientSession(c.cn)
 	go session.Serve()
 	c.rr = new(ResponseRecorder)
 	err := session.NewStreamProxy(req, c.rr)
-	if err!=nil {
-	        return &http.Response{},err
+	if err != nil {
+		return &http.Response{}, err
 	}
 	resp := &http.Response{
 		StatusCode:    c.rr.Code,
@@ -93,5 +94,5 @@ func (c *Client) Do(req *http.Request) (*http.Response,error) {
 		Body:          &readCloser{c.rr.Body},
 		ContentLength: int64(c.rr.Body.Len()),
 	}
-	return resp,nil
+	return resp, nil
 }
