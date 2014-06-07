@@ -80,24 +80,9 @@ func main() {
 	handle(err)
 	conn, err := net.Dial("tcp", "localhost:4040")
 	handle(err)
-	spdy.EnableDebug()
-	// make the client connection
-
-	//client := httputil.NewClientConn(conn, nil)
-
-	/*
-			//send hello
-		        res, err := client.Do(req)
-		        fmt.Println(res.Status)
-	*/
-	//hijack for spdy
-	//conn, _ = client.Hijack()
 	session := spdy.NewClientSession(conn)
-	fmt.Println("Ready")
 	go session.Serve()
-	//res, err = client.Do(req)
 	w := new(ResponseRecorder)
-	fmt.Println("Serving")
 	handle(session.NewStreamProxy(req, w))
 	fmt.Println(w.Body)
 }

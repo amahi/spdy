@@ -7,7 +7,6 @@
 package spdy
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"time"
@@ -22,9 +21,7 @@ func handleConnection(conn net.Conn, addr string, handler http.Handler) {
 	}
 	hserve.Addr = addr
 	session := NewServerSession(conn, hserve)
-	fmt.Println("Serving started")
 	handle(session.Serve())
-	fmt.Println("Serving ended")
 }
 
 func ListenAndServe(addr string, handler http.Handler) (err error) {
