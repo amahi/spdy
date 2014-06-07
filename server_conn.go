@@ -25,7 +25,7 @@ func handleConnection(conn net.Conn, addr string, handler http.Handler) {
 }
 
 func ListenAndServe(addr string, handler http.Handler) (err error) {
-	ln, err := net.Listen("tcp", ":4040")
+	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		// handle error
 	}
@@ -50,5 +50,4 @@ func ListenAndServe(addr string, handler http.Handler) (err error) {
 		}
 		go handleConnection(conn, addr, handler)
 	}
-
 }

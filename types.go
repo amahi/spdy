@@ -7,6 +7,7 @@
 package spdy
 
 import (
+        "bytes"
 	"io"
 	"net"
 	"net/http"
@@ -142,4 +143,20 @@ const (
 
 type readCloser struct {
 	io.Reader
+}
+
+// ResponseRecorder is an implementation of http.ResponseWriter that
+// is used to get a response.
+type ResponseRecorder struct {
+	Code        int           // the HTTP response code from WriteHeader
+	HeaderMap   http.Header   // the HTTP response headers
+	Body        *bytes.Buffer // if non-nil, the bytes.Buffer to append written data to
+	Flushed     bool
+	wroteHeader bool
+}
+
+//spdy client
+type Client struct {
+	rr *ResponseRecorder
+	cn net.Conn
 }
