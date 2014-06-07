@@ -632,6 +632,7 @@ func (s *Stream) northboundBufferSender() {
 		// all good with this write
 		if size > 0 {
 			debug.Printf("Stream #%d: %d bytes successfully written upstream", s.id, size)
+			fmt.Println(s.response_writer)
 			wupdate := windowUpdateFor(s.id, size)
 			s.session.out <- wupdate
 		}

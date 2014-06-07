@@ -45,13 +45,16 @@ func (rw *ResponseRecorder) Header() http.Header {
 	return m
 }
 
-// Write always succeeds and writes to rw.Body, if not nil.
+// Write always succeeds and writes to rw.Body.
 func (rw *ResponseRecorder) Write(buf []byte) (int, error) {
 	if !rw.wroteHeader {
 		rw.WriteHeader(200)
 	}
 	if rw.Body != nil {
 		rw.Body.Write(buf)
+	} else {
+	        rw.Body = new (bytes.Buffer)
+	        rw.Body.Write(buf)
 	}
 	return len(buf), nil
 }
