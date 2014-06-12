@@ -221,6 +221,36 @@ func init() {
         time.Sleep(time.Second)
         handle(os.Chdir("./integration-tests"))
 }
+func ServerTestHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
+}
+
+func TestSimpleServerClient(t *testing.T) {
+        mux := http.NewServeMux()
+	mux.HandleFunc("/", ServerTestHandler)
+	go ListenAndServe("localhost:4040", mux)
+	time.Sleep(time.Second)
+	client, err := NewClient("localhost:4040")
+	if err != nil {
+                t.Fatal(err.Error())
+        }
+	req, err := http.NewRequest("GET", "http://localhost:4040/banana", nil)
+	if err != nil {
+                t.Fatal(err.Error())
+        }
+	res, err := client.Do(req)
+	if err != nil {
+                t.Fatal(err.Error())
+        }
+	data := make([]byte, int(res.ContentLength))
+	_, err = res.Body.(io.Reader).Read(data)
+	if(string(data)!="Hi there, I love banana!") {
+	        t.Fatal("Unexpected Data")
+	}
+	
+	res.Body.Close()
+}
+
 func TestGet(t *testing.T) {
         cmd := exec.Command("bash","test-01-basic-root-dir-listing.sh")
         out,err := cmd.Output()
@@ -338,7 +368,7 @@ func TestHeadReq(t *testing.T) {
                 t.Error("Unexpected Output")
         }
 }
-
+/*
 func TestSlowCall(t *testing.T) {
         cmd := exec.Command("bash","test-80-sloow-call.sh")
         out,err := cmd.Output()
@@ -351,3 +381,4 @@ func TestSlowCall(t *testing.T) {
                 t.Error("Unexpected Output")
         }
 }
+*/

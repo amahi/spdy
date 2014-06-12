@@ -114,24 +114,24 @@ func NewRecorder() *ResponseRecorder <span class="cov0" title="0">{
 }</span>
 
 // Header returns the response headers.
-func (rw *ResponseRecorder) Header() http.Header <span class="cov0" title="0">{
+func (rw *ResponseRecorder) Header() http.Header <span class="cov8" title="1">{
         m := rw.HeaderMap
-        if m == nil </span><span class="cov0" title="0">{
+        if m == nil </span><span class="cov8" title="1">{
                 m = make(http.Header)
                 rw.HeaderMap = m
         }</span>
-        <span class="cov0" title="0">return m</span>
+        <span class="cov8" title="1">return m</span>
 }
 
 // Write always succeeds and writes to rw.Body.
-func (rw *ResponseRecorder) Write(buf []byte) (int, error) <span class="cov0" title="0">{
+func (rw *ResponseRecorder) Write(buf []byte) (int, error) <span class="cov8" title="1">{
         if !rw.wroteHeader </span><span class="cov0" title="0">{
                 rw.WriteHeader(200)
         }</span>
-        <span class="cov0" title="0">if rw.Body != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if rw.Body != nil </span><span class="cov0" title="0">{
                 len, err := rw.Body.Write(buf)
                 return len, err
-        }</span> <span class="cov0" title="0">else {
+        }</span> <span class="cov8" title="1">else {
                 rw.Body = new(bytes.Buffer)
                 len, err := rw.Body.Write(buf)
                 return len, err
@@ -140,11 +140,11 @@ func (rw *ResponseRecorder) Write(buf []byte) (int, error) <span class="cov0" ti
 }
 
 // WriteHeader sets rw.Code.
-func (rw *ResponseRecorder) WriteHeader(code int) <span class="cov0" title="0">{
-        if !rw.wroteHeader </span><span class="cov0" title="0">{
+func (rw *ResponseRecorder) WriteHeader(code int) <span class="cov8" title="1">{
+        if !rw.wroteHeader </span><span class="cov8" title="1">{
                 rw.Code = code
         }</span>
-        <span class="cov0" title="0">rw.wroteHeader = true</span>
+        <span class="cov8" title="1">rw.wroteHeader = true</span>
 }
 
 // Flush sets rw.Flushed to true.
@@ -155,16 +155,16 @@ func (rw *ResponseRecorder) Flush() <span class="cov0" title="0">{
         <span class="cov0" title="0">rw.Flushed = true</span>
 }
 
-func NewClient(addr string) (*Client, error) <span class="cov0" title="0">{
+func NewClient(addr string) (*Client, error) <span class="cov8" title="1">{
         conn, err := net.Dial("tcp", addr)
         if err != nil </span><span class="cov0" title="0">{
                 return &amp;Client{}, err
         }</span>
-        <span class="cov0" title="0">return &amp;Client{cn: conn}, nil</span>
+        <span class="cov8" title="1">return &amp;Client{cn: conn}, nil</span>
 }
 
 //to get a response from the client
-func (c *Client) Do(req *http.Request) (*http.Response, error) <span class="cov0" title="0">{
+func (c *Client) Do(req *http.Request) (*http.Response, error) <span class="cov8" title="1">{
         session := NewClientSession(c.cn)
         go session.Serve()
         c.rr = new(ResponseRecorder)
@@ -172,7 +172,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) <span class="cov0
         if err != nil </span><span class="cov0" title="0">{
                 return &amp;http.Response{}, err
         }</span>
-        <span class="cov0" title="0">resp := &amp;http.Response{
+        <span class="cov8" title="1">resp := &amp;http.Response{
                 StatusCode:    c.rr.Code,
                 Proto:         "HTTP/1.1",
                 ProtoMajor:    1,
@@ -1009,25 +1009,25 @@ import (
         "time"
 )
 
-func handleConnection(conn net.Conn, addr string, handler http.Handler) <span class="cov0" title="0">{
+func handleConnection(conn net.Conn, addr string, handler http.Handler) <span class="cov8" title="1">{
         hserve := new(http.Server)
         if handler == nil </span><span class="cov0" title="0">{
                 hserve.Handler = http.DefaultServeMux
-        }</span> <span class="cov0" title="0">else {
+        }</span> <span class="cov8" title="1">else {
                 hserve.Handler = handler
         }</span>
-        <span class="cov0" title="0">hserve.Addr = addr
+        <span class="cov8" title="1">hserve.Addr = addr
         session := NewServerSession(conn, hserve)
         handle(session.Serve())</span>
 }
 
-func ListenAndServe(addr string, handler http.Handler) (err error) <span class="cov0" title="0">{
+func ListenAndServe(addr string, handler http.Handler) (err error) <span class="cov8" title="1">{
         ln, err := net.Listen("tcp", addr)
         if err != nil </span><span class="cov0" title="0">{
                 // handle error
         }</span>
-        <span class="cov0" title="0">var tempDelay time.Duration // how long to sleep on accept failure
-        for </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">var tempDelay time.Duration // how long to sleep on accept failure
+        for </span><span class="cov8" title="1">{
                 conn, err := ln.Accept()
                 if err != nil </span><span class="cov0" title="0">{
                         if ne, ok := err.(net.Error); ok &amp;&amp; ne.Temporary() </span><span class="cov0" title="0">{
@@ -1045,7 +1045,7 @@ func ListenAndServe(addr string, handler http.Handler) (err error) <span class="
                         }
                         <span class="cov0" title="0">return err</span>
                 }
-                <span class="cov0" title="0">go handleConnection(conn, addr, handler)</span>
+                <span class="cov8" title="1">go handleConnection(conn, addr, handler)</span>
         }
 }
 </pre>
@@ -1661,7 +1661,7 @@ func (s *Stream) prepareRequestHeader(request *http.Request) (err error) <span c
 func (s *Stream) prepareRequestBody(request *http.Request) (body []*dataFrame, err error) <span class="cov8" title="1">{
 
         body = make([]*dataFrame, 0, 1)
-        if request.Body == nil </span><span class="cov0" title="0">{
+        if request.Body == nil </span><span class="cov8" title="1">{
                 return body, nil
         }</span>
 
@@ -1702,7 +1702,7 @@ func (s *Stream) handleRequest(request *http.Request) (err error) <span class="c
         }</span>
 
         <span class="cov8" title="1">flags := FLAG_NONE
-        if request.Body == nil </span><span class="cov0" title="0">{
+        if request.Body == nil </span><span class="cov8" title="1">{
                 flags = FLAG_FIN
         }</span>
 
@@ -2042,7 +2042,7 @@ func (s *Stream) WriteHeader(code int) <span class="cov8" title="1">{
         <span class="cov8" title="1">s.headers.Set(HEADER_STATUS, strconv.Itoa(code)+" "+http.StatusText(code))
         s.headers.Set(HEADER_VERSION, "HTTP/1.1")
 
-        if s.headers.Get("Content-Type") == "" </span><span class="cov0" title="0">{
+        if s.headers.Get("Content-Type") == "" </span><span class="cov8" title="1">{
                 s.headers.Set("Content-Type", "text/html; charset=utf-8")
         }</span>
         <span class="cov8" title="1">if s.headers.Get("Date") == "" </span><span class="cov8" title="1">{
@@ -2169,7 +2169,7 @@ func (s *Stream) northboundBufferSender() <span class="cov8" title="1">{
 
 // Close does nothing and is here only to allow the data of a request to become
 // the body of a response
-func (r *readCloser) Close() error <span class="cov0" title="0">{ return nil }</span>
+func (r *readCloser) Close() error <span class="cov8" title="1">{ return nil }</span>
 
 func (s *Stream) handleRstStream(frame controlFrame) (err error) <span class="cov0" title="0">{
 
