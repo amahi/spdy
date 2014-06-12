@@ -1,0 +1,5 @@
+HTTP/1.1 200 OK
+Accept-Ranges: bytes
+Content-Length: 2048000
+Content-Type: video/webm
+
