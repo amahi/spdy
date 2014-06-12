@@ -338,7 +338,7 @@ func TestHeadReq(t *testing.T) {
                 t.Error("Unexpected Output")
         }
 }
-/*
+
 func TestSlowCall(t *testing.T) {
         cmd := exec.Command("bash","test-80-sloow-call.sh")
         out,err := cmd.Output()
@@ -351,4 +351,3 @@ func TestSlowCall(t *testing.T) {
                 t.Error("Unexpected Output")
         }
 }
-*/
