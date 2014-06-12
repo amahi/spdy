@@ -24,7 +24,7 @@ import (
 const HOST_PORT_API = "localhost:1443"
 const HOST_PORT_SERVERS = "localhost:1444"
 const HOST_PORT = "localhost:1444"
-const SERVER_ROOT = "/home/neal/goWorkspace/src/github.com/nileshjagnik/spdy/testdata"
+const SERVER_ROOT = "../testdata"
 
 type handler struct {
         data []byte
@@ -338,7 +338,7 @@ func TestHeadReq(t *testing.T) {
                 t.Error("Unexpected Output")
         }
 }
-
+/*
 func TestSlowCall(t *testing.T) {
         cmd := exec.Command("bash","test-80-sloow-call.sh")
         out,err := cmd.Output()
@@ -351,4 +351,4 @@ func TestSlowCall(t *testing.T) {
                 t.Error("Unexpected Output")
         }
 }
-
+*/
