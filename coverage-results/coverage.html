@@ -94,8 +94,10 @@ package spdy
 
 import (
         "bytes"
+        "errors"
         "net"
         "net/http"
+        "time"
 )
 
 func handle(err error) <span class="cov8" title="1">{
@@ -105,7 +107,7 @@ func handle(err error) <span class="cov8" title="1">{
 }
 
 // NewRecorder returns an initialized ResponseRecorder.
-func NewRecorder() *ResponseRecorder <span class="cov0" title="0">{
+func NewRecorder() *ResponseRecorder <span class="cov8" title="1">{
         return &amp;ResponseRecorder{
                 HeaderMap: make(http.Header),
                 Body:      new(bytes.Buffer),
@@ -116,7 +118,7 @@ func NewRecorder() *ResponseRecorder <span class="cov0" title="0">{
 // Header returns the response headers.
 func (rw *ResponseRecorder) Header() http.Header <span class="cov8" title="1">{
         m := rw.HeaderMap
-        if m == nil </span><span class="cov8" title="1">{
+        if m == nil </span><span class="cov0" title="0">{
                 m = make(http.Header)
                 rw.HeaderMap = m
         }</span>
@@ -128,10 +130,10 @@ func (rw *ResponseRecorder) Write(buf []byte) (int, error) <span class="cov8" ti
         if !rw.wroteHeader </span><span class="cov0" title="0">{
                 rw.WriteHeader(200)
         }</span>
-        <span class="cov8" title="1">if rw.Body != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if rw.Body != nil </span><span class="cov8" title="1">{
                 len, err := rw.Body.Write(buf)
                 return len, err
-        }</span> <span class="cov8" title="1">else {
+        }</span> <span class="cov0" title="0">else {
                 rw.Body = new(bytes.Buffer)
                 len, err := rw.Body.Write(buf)
                 return len, err
@@ -147,28 +149,29 @@ func (rw *ResponseRecorder) WriteHeader(code int) <span class="cov8" title="1">{
         <span class="cov8" title="1">rw.wroteHeader = true</span>
 }
 
-// Flush sets rw.Flushed to true.
-func (rw *ResponseRecorder) Flush() <span class="cov0" title="0">{
-        if !rw.wroteHeader </span><span class="cov0" title="0">{
-                rw.WriteHeader(200)
-        }</span>
-        <span class="cov0" title="0">rw.Flushed = true</span>
-}
 
+//returns a client that reads and writes on c
+func NewClientConn(c net.Conn) (*Client,error) <span class="cov8" title="1">{
+        session := NewClientSession(c)
+        go session.Serve()
+        return &amp;Client{cn: c, ss: session}, nil
+}</span>
+
+//returns a client with tcp connection created using net.Dial 
 func NewClient(addr string) (*Client, error) <span class="cov8" title="1">{
         conn, err := net.Dial("tcp", addr)
         if err != nil </span><span class="cov0" title="0">{
                 return &amp;Client{}, err
         }</span>
-        <span class="cov8" title="1">return &amp;Client{cn: conn}, nil</span>
+        <span class="cov8" title="1">session := NewClientSession(conn)
+        go session.Serve()
+        return &amp;Client{cn: conn, ss: session}, nil</span>
 }
 
 //to get a response from the client
 func (c *Client) Do(req *http.Request) (*http.Response, error) <span class="cov8" title="1">{
-        session := NewClientSession(c.cn)
-        go session.Serve()
-        c.rr = new(ResponseRecorder)
-        err := session.NewStreamProxy(req, c.rr)
+        c.rr = NewRecorder()
+        err := c.ss.NewStreamProxy(req, c.rr)
         if err != nil </span><span class="cov0" title="0">{
                 return &amp;http.Response{}, err
         }</span>
@@ -181,6 +184,23 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) <span class="cov8
                 ContentLength: int64(c.rr.Body.Len()),
         }
         return resp, nil</span>
+}
+
+func (c *Client) Close() error <span class="cov8" title="1">{
+        if c.cn == nil </span><span class="cov0" title="0">{
+                err := errors.New("No connection to close")
+                return err
+        }</span>
+        <span class="cov8" title="1">err := c.cn.Close()
+        return err</span>
+}
+func (c *Client) Ping(d time.Duration) (pinged bool, err error) <span class="cov8" title="1">{
+        if c.cn == nil </span><span class="cov0" title="0">{
+                err := errors.New("No connection estabilished to server")
+                return false, err
+        }</span>
+        <span class="cov8" title="1">ping := c.ss.Ping(d)
+        return ping, nil</span>
 }
 </pre>
 		
@@ -211,7 +231,7 @@ func EnableDebug() <span class="cov0" title="0">{
 }</span>
 
 // SetLog sets the output of logging to a given io.Writer
-func SetLog(w io.Writer) <span class="cov0" title="0">{
+func SetLog(w io.Writer) <span class="cov8" title="1">{
         log = logging.New(w, "[SPDY] ", logging.LstdFlags|logging.Lshortfile)
 }</span>
 </pre>
@@ -262,11 +282,11 @@ func (f controlFrameKind) String() string <span class="cov8" title="1">{
                 return "SYN_STREAM"</span>
         <span class="cov8" title="1">case FRAME_SYN_REPLY:
                 return "SYN_REPLY"</span>
-        <span class="cov0" title="0">case FRAME_RST_STREAM:
+        <span class="cov8" title="1">case FRAME_RST_STREAM:
                 return "RST_STREAM"</span>
-        <span class="cov0" title="0">case FRAME_SETTINGS:
+        <span class="cov8" title="1">case FRAME_SETTINGS:
                 return "SETTINGS"</span>
-        <span class="cov0" title="0">case FRAME_PING:
+        <span class="cov8" title="1">case FRAME_PING:
                 return "PING"</span>
         <span class="cov0" title="0">case FRAME_GOAWAY:
                 return "GOAWAY"</span>
@@ -388,7 +408,7 @@ func writeBinary(r io.Writer, args ...interface{}) (err error) <span class="cov8
 func readFrame(r io.Reader) (f frame, err error) <span class="cov8" title="1">{
         headBuffer := new(bytes.Buffer)
         _, err = io.CopyN(headBuffer, r, 5)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 return
         }</span>
         <span class="cov8" title="1">if headBuffer.Bytes()[0]&amp;0x80 == 0 </span><span class="cov8" title="1">{
@@ -953,8 +973,8 @@ func isBrokenPipe(err error) bool <span class="cov0" title="0">{
 }
 
 // return best guess at a string for a network error
-func netErrorString(err error) string <span class="cov0" title="0">{
-        if e, ok := err.(*net.OpError); ok </span><span class="cov0" title="0">{
+func netErrorString(err error) string <span class="cov8" title="1">{
+        if e, ok := err.(*net.OpError); ok </span><span class="cov8" title="1">{
                 return fmt.Sprintf("%s", e.Err)
         }</span>
         <span class="cov0" title="0">return fmt.Sprintf("%#v", err)</span>
@@ -1004,32 +1024,47 @@ func (s *Session) NewStreamProxy(r *http.Request, w http.ResponseWriter) (err er
 package spdy
 
 import (
+        "crypto/tls"
         "net"
         "net/http"
         "time"
 )
 
-func handleConnection(conn net.Conn, addr string, handler http.Handler) <span class="cov8" title="1">{
+func (c *conn) handleConnection() <span class="cov8" title="1">{
         hserve := new(http.Server)
-        if handler == nil </span><span class="cov0" title="0">{
+        if c.srv.Handler == nil </span><span class="cov0" title="0">{
                 hserve.Handler = http.DefaultServeMux
         }</span> <span class="cov8" title="1">else {
-                hserve.Handler = handler
+                hserve.Handler = c.srv.Handler
         }</span>
-        <span class="cov8" title="1">hserve.Addr = addr
-        session := NewServerSession(conn, hserve)
-        handle(session.Serve())</span>
+        <span class="cov8" title="1">hserve.Addr = c.srv.Addr
+        c.ss = NewServerSession(c.cn, hserve)
+        c.ss.Serve()</span>
 }
 
-func ListenAndServe(addr string, handler http.Handler) (err error) <span class="cov8" title="1">{
-        ln, err := net.Listen("tcp", addr)
-        if err != nil </span><span class="cov0" title="0">{
-                // handle error
+// ListenAndServe listens on the TCP network address s.Addr and then
+// calls Serve to handle requests on incoming connections.
+func (s *Server) ListenAndServe() (err error) <span class="cov8" title="1">{
+        if s.Addr == "" </span><span class="cov0" title="0">{
+                s.Addr = ":http"
         }</span>
-        <span class="cov8" title="1">var tempDelay time.Duration // how long to sleep on accept failure
+        <span class="cov8" title="1">ln, err := net.Listen("tcp", s.Addr)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">return s.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})</span>
+}
+
+// Serve accepts incoming connections on the Listener l, creating a
+// new service goroutine for each.  The service goroutines read requests and
+// then call srv.Handler to reply to them.
+func (s *Server) Serve(ln net.Listener) (err error) <span class="cov8" title="1">{
+        s.ln = ln
+        defer s.ln.Close()
+        var tempDelay time.Duration // how long to sleep on accept failure
         for </span><span class="cov8" title="1">{
-                conn, err := ln.Accept()
-                if err != nil </span><span class="cov0" title="0">{
+                rw, err := s.ln.Accept()
+                if err != nil </span><span class="cov8" title="1">{
                         if ne, ok := err.(net.Error); ok &amp;&amp; ne.Temporary() </span><span class="cov0" title="0">{
                                 if tempDelay == 0 </span><span class="cov0" title="0">{
                                         tempDelay = 5 * time.Millisecond
@@ -1043,10 +1078,154 @@ func ListenAndServe(addr string, handler http.Handler) (err error) <span class="
                                 time.Sleep(tempDelay)
                                 continue</span>
                         }
-                        <span class="cov0" title="0">return err</span>
+                        <span class="cov8" title="1">return err</span>
                 }
-                <span class="cov8" title="1">go handleConnection(conn, addr, handler)</span>
+                <span class="cov8" title="1">tempDelay = 0
+                c, err := s.newConn(rw)
+                if err != nil </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+                <span class="cov8" title="1">go c.handleConnection()</span>
         }
+}
+
+//close spdy server and return
+// Any blocked Accept operations will be unblocked and return errors.
+func (s *Server) Close() (err error) <span class="cov8" title="1">{
+        return s.ln.Close()
+}</span>
+
+// Create new connection from rw
+func (server *Server) newConn(rwc net.Conn) (c *conn, err error) <span class="cov8" title="1">{
+        c = &amp;conn{
+                srv: server,
+                cn:  rwc,
+        }
+        return c, nil
+}</span>
+
+// ListenAndServe listens on the TCP network address addr
+// and then calls Serve with handler to handle requests
+// on incoming connections.  Handler is typically nil,
+// in which case the DefaultServeMux is used.
+//
+// A trivial example server is:
+//
+//        package main
+//
+//        import (
+//                "io"
+//                "net/http"
+//                "log"
+//        )
+//
+//        // hello world, the web server
+//        func HelloServer(w http.ResponseWriter, req *http.Request) {
+//                io.WriteString(w, "hello, world!\n")
+//        }
+//
+//        func main() {
+//                http.HandleFunc("/hello", HelloServer)
+//                err := spdy.ListenAndServe(":12345", nil)
+//                if err != nil {
+//                        log.Fatal("ListenAndServe: ", err)
+//                }
+//        }
+func ListenAndServe(addr string, handler http.Handler) (err error) <span class="cov0" title="0">{
+        server := &amp;Server{
+                Addr:    addr,
+                Handler: handler,
+        }
+        return server.ListenAndServe()
+}</span>
+
+// ListenAndServeTLS acts identically to ListenAndServe, except that it
+// expects HTTPS connections. Additionally, files containing a certificate and
+// matching private key for the server must be provided. If the certificate
+// is signed by a certificate authority, the certFile should be the concatenation
+// of the server's certificate followed by the CA's certificate.
+//
+// A trivial example server is:
+//
+//        import (
+//                "log"
+//                "net/http"
+//        )
+//
+//        func handler(w http.ResponseWriter, req *http.Request) {
+//                w.Header().Set("Content-Type", "text/plain")
+//                w.Write([]byte("This is an example server.\n"))
+//        }
+//
+//        func main() {
+//                http.HandleFunc("/", handler)
+//                log.Printf("About to listen on 10443. Go to https://127.0.0.1:10443/")
+//                err := http.ListenAndServeTLS(":10443", "cert.pem", "key.pem", nil)
+//                if err != nil {
+//                        log.Fatal(err)
+//                }
+//        }
+//
+// One can use generate_cert.go in crypto/tls to generate cert.pem and key.pem.
+func ListenAndServeTLS(addr string, certFile string, keyFile string, handler http.Handler) error <span class="cov0" title="0">{
+        server := &amp;Server{
+                Addr:    addr,
+                Handler: handler,
+        }
+        return server.ListenAndServeTLS(certFile, keyFile)
+}</span>
+
+// ListenAndServeTLS listens on the TCP network address srv.Addr and
+// then calls Serve to handle requests on incoming TLS connections.
+//
+// Filenames containing a certificate and matching private key for
+// the server must be provided. If the certificate is signed by a
+// certificate authority, the certFile should be the concatenation
+// of the server's certificate followed by the CA's certificate.
+func (srv *Server) ListenAndServeTLS(certFile, keyFile string) error <span class="cov8" title="1">{
+        addr := srv.Addr
+        if addr == "" </span><span class="cov0" title="0">{
+                addr = ":https"
+        }</span>
+        <span class="cov8" title="1">config := &amp;tls.Config{}
+        if srv.TLSConfig != nil </span><span class="cov0" title="0">{
+                *config = *srv.TLSConfig
+        }</span>
+        <span class="cov8" title="1">if config.NextProtos == nil </span><span class="cov8" title="1">{
+                config.NextProtos = []string{"http/1.1"}
+        }</span>
+        <span class="cov8" title="1">var err error
+        config.Certificates = make([]tls.Certificate, 1)
+        config.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        
+        <span class="cov8" title="1">ln, err := net.Listen("tcp", addr)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">tlsListener := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, config)
+        return srv.Serve(tlsListener)</span>
+}
+
+// tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
+// connections. It's used by ListenAndServe and ListenAndServeTLS so
+// dead TCP connections (e.g. closing laptop mid-download) eventually
+// go away.
+type tcpKeepAliveListener struct {
+        *net.TCPListener
+}
+
+func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) <span class="cov8" title="1">{
+        tc, err := ln.AcceptTCP()
+        if err != nil </span><span class="cov8" title="1">{
+                return
+        }</span>
+        <span class="cov8" title="1">tc.SetKeepAlive(true)
+        tc.SetKeepAlivePeriod(3 * time.Minute)
+        return tc, nil</span>
 }
 </pre>
 		
@@ -1139,14 +1318,14 @@ func (s *Session) Serve() (err error) <span class="cov8" title="1">{
         }</span>
 
         // force removing all existing streams
-        <span class="cov0" title="0">for i := range s.streams </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">for i := range s.streams </span><span class="cov8" title="1">{
                 str := s.streams[i]
                 str.finish_stream()
                 delete(s.streams, i)
         }</span>
 
         // close this session
-        <span class="cov0" title="0">s.Close()
+        <span class="cov8" title="1">s.Close()
         debug.Println("Session closed. Session server done.")
 
         return</span>
@@ -1180,7 +1359,7 @@ func (s *Session) session_loop(sender_done, receiver_done &lt;-chan bool) (err e
                         }</span> <span class="cov0" title="0">else {
                                 return
                         }</span>
-                <span class="cov0" title="0">case _, _ = &lt;-receiver_done:
+                <span class="cov8" title="1">case _, _ = &lt;-receiver_done:
                         debug.Println("Session receiver is done")
                         return</span>
                 <span class="cov0" title="0">case _, _ = &lt;-sender_done:
@@ -1192,14 +1371,14 @@ func (s *Session) session_loop(sender_done, receiver_done &lt;-chan bool) (err e
 
 // Close closes the Session and the underlaying network connection.
 // It should be called when the Session is idle for best results.
-func (s *Session) Close() <span class="cov0" title="0">{
+func (s *Session) Close() <span class="cov8" title="1">{
         // FIXME - what else do we need to do here?
         if s.closed </span><span class="cov0" title="0">{
                 debug.Println("WARNING: session was already closed - why?")
                 return
         }</span>
 
-        <span class="cov0" title="0">s.closed = true
+        <span class="cov8" title="1">s.closed = true
 
         // in case any of the closes below clashes
         defer no_panics()
@@ -1229,7 +1408,7 @@ func (s *Session) frameSender(done chan&lt;- bool, in &lt;-chan frame) <span cla
                         break</span>
                 }
         }
-        <span class="cov0" title="0">done &lt;- true
+        <span class="cov8" title="1">done &lt;- true
         debug.Printf("Session sender ended")</span>
 }
 
@@ -1240,11 +1419,11 @@ func (s *Session) frameReceiver(done chan&lt;- bool, incoming chan&lt;- frame) <
 
         for </span><span class="cov8" title="1">{
                 frame, err := readFrame(s.conn)
-                if err == io.EOF </span><span class="cov0" title="0">{
+                if err == io.EOF </span><span class="cov8" title="1">{
                         // normal reasons, like disconnection, etc.
                         break</span>
                 }
-                <span class="cov8" title="1">if err != nil </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
                         // some other communication error
                         log.Printf("WARN: communication error: %s", netErrorString(err))
                         break</span>
@@ -1253,10 +1432,9 @@ func (s *Session) frameReceiver(done chan&lt;- bool, incoming chan&lt;- frame) <
                 <span class="cov8" title="1">debug.Printf("Session got: %s", frame)
                 incoming &lt;- frame</span>
         }
-        <span class="cov0" title="0">done &lt;- true
+        <span class="cov8" title="1">done &lt;- true
         debug.Printf("Session receiver ended")</span>
 }
-
 func (s *Session) processControlFrame(frame controlFrame) (err error) <span class="cov8" title="1">{
 
         switch frame.kind </span>{
@@ -1306,12 +1484,12 @@ func (s *Session) processControlFrame(frame controlFrame) (err error) <span clas
                 <span class="cov8" title="1">return</span>
         <span class="cov8" title="1">case FRAME_SYN_REPLY:
                 return s.processSynReply(frame)</span>
-        <span class="cov0" title="0">case FRAME_SETTINGS:
+        <span class="cov8" title="1">case FRAME_SETTINGS:
                 return s.processSettings(frame)</span>
-        <span class="cov0" title="0">case FRAME_RST_STREAM:
+        <span class="cov8" title="1">case FRAME_RST_STREAM:
                 // just to avoid locking issues, send it in a goroutine
                 go s.processRstStream(frame)</span>
-        <span class="cov0" title="0">case FRAME_PING:
+        <span class="cov8" title="1">case FRAME_PING:
                 return s.processPing(frame)</span>
         <span class="cov8" title="1">case FRAME_WINDOW_UPDATE:
                 s.processWindowUpdate(frame)</span>
@@ -1375,34 +1553,34 @@ func (s *Session) processSynReply(frame controlFrame) (err error) <span class="c
         return</span>
 }
 
-// Read details for SESSIONS frame
-func (s *Session) processSettings(frame controlFrame) (err error) <span class="cov0" title="0">{
+// Read details for SETTINGS frame
+func (s *Session) processSettings(frame controlFrame) (err error) <span class="cov8" title="1">{
         s.settings = new(settings)
         data := bytes.NewBuffer(frame.data)
         err = binary.Read(data, binary.BigEndian, &amp;s.settings.count)
         if err != nil </span><span class="cov0" title="0">{
                 return
         }</span>
-        <span class="cov0" title="0">s.settings.svp = make([]settingsValuePairs, s.settings.count)
-        for i := uint32(0); i &lt; s.settings.count; i++ </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">s.settings.svp = make([]settingsValuePairs, s.settings.count)
+        for i := uint32(0); i &lt; s.settings.count; i++ </span><span class="cov8" title="1">{
                 err = binary.Read(data, binary.BigEndian, &amp;s.settings.svp[i].flags)
                 if err != nil </span><span class="cov0" title="0">{
                         return
                 }</span>
-                <span class="cov0" title="0">err = binary.Read(data, binary.BigEndian, &amp;s.settings.svp[i].id)
+                <span class="cov8" title="1">err = binary.Read(data, binary.BigEndian, &amp;s.settings.svp[i].id)
                 if err != nil </span><span class="cov0" title="0">{
                         return
                 }</span>
-                <span class="cov0" title="0">err = binary.Read(data, binary.BigEndian, &amp;s.settings.svp[i].value)
+                <span class="cov8" title="1">err = binary.Read(data, binary.BigEndian, &amp;s.settings.svp[i].value)
                 if err != nil </span><span class="cov0" title="0">{
                         return
                 }</span>
         }
 
-        <span class="cov0" title="0">return</span>
+        <span class="cov8" title="1">return</span>
 }
 
-func (s *Session) processRstStream(frame controlFrame) <span class="cov0" title="0">{
+func (s *Session) processRstStream(frame controlFrame) <span class="cov8" title="1">{
 
         debug.Println("Processing RST_STREAM received")
         id := frame.streamID()
@@ -1411,8 +1589,8 @@ func (s *Session) processRstStream(frame controlFrame) <span class="cov0" title=
                 return
         }</span>
 
-        <span class="cov0" title="0">stream, ok := s.streams[id]
-        if !ok || (ok &amp;&amp; stream.closed) </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">stream, ok := s.streams[id]
+        if !ok || (ok &amp;&amp; stream.closed) </span><span class="cov8" title="1">{
                 debug.Printf("Window update for unknown stream #%d ignored", id)
                 debug.Println("known streams are", s.streams)
                 return
@@ -1423,7 +1601,7 @@ func (s *Session) processRstStream(frame controlFrame) <span class="cov0" title=
 }
 
 // Read details for SESSIONS frame
-func (s *Session) processPing(frame controlFrame) (err error) <span class="cov0" title="0">{
+func (s *Session) processPing(frame controlFrame) (err error) <span class="cov8" title="1">{
         s.settings = new(settings)
         var id uint32
         data := bytes.NewBuffer(frame.data[0:4])
@@ -1431,20 +1609,20 @@ func (s *Session) processPing(frame controlFrame) (err error) <span class="cov0"
         debug.Printf("PING #%d", id)
 
         // check that it's initiated by this end or the other
-        if (s.nextPing &amp; 0x00000001) == (uint32(id) &amp; 0x00000001) </span><span class="cov0" title="0">{
+        if (s.nextPing &amp; 0x00000001) == (uint32(id) &amp; 0x00000001) </span><span class="cov8" title="1">{
                 // the ping received matches our partity, do not reply!
                 select </span>{
-                <span class="cov0" title="0">case s.pinger &lt;- id:</span>
+                <span class="cov8" title="1">case s.pinger &lt;- id:</span>
                         // Pingback received successfully
                 <span class="cov0" title="0">default:
                         // noone was listening
                         debug.Println("Pingback discarded (received too late)")</span>
                 }
-                <span class="cov0" title="0">return</span>
+                <span class="cov8" title="1">return</span>
         }
 
         // send it right back!
-        <span class="cov0" title="0">s.out &lt;- frame
+        <span class="cov8" title="1">s.out &lt;- frame
 
         return</span>
 }
@@ -1458,7 +1636,7 @@ func no_panics() <span class="cov8" title="1">{
 // Ping issues a SPDY PING frame and returns true if it the other side returned
 // the PING frame within the duration, else it returns false. NOTE only one
 // outstanting ping works in the current implementation.
-func (s *Session) Ping(d time.Duration) (pinged bool) <span class="cov0" title="0">{
+func (s *Session) Ping(d time.Duration) (pinged bool) <span class="cov8" title="1">{
 
         // increase the next ping id
         id := atomic.AddUint32((*uint32)(&amp;s.nextPing), 2) - 2
@@ -1475,9 +1653,9 @@ func (s *Session) Ping(d time.Duration) (pinged bool) <span class="cov0" title="
         pinged = false
 
         select </span>{
-        <span class="cov0" title="0">case pid, ok := &lt;-s.pinger:
-                if ok </span><span class="cov0" title="0">{ // make sure we get the same id we sent back
-                        if pid == id </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">case pid, ok := &lt;-s.pinger:
+                if ok </span><span class="cov8" title="1">{ // make sure we get the same id we sent back
+                        if pid == id </span><span class="cov8" title="1">{
                                 pinged = true
                         }</span>
                 }
@@ -1486,7 +1664,7 @@ func (s *Session) Ping(d time.Duration) (pinged bool) <span class="cov0" title="
                 // timeout
         }
 
-        <span class="cov0" title="0">return pinged</span>
+        <span class="cov8" title="1">return pinged</span>
 }
 
 func (s *Session) processWindowUpdate(frame controlFrame) <span class="cov8" title="1">{
@@ -1849,6 +2027,24 @@ func (s *Stream) initiate_stream(frame controlFrame) (err error) <span class="co
                 for endflag == 0 </span><span class="cov8" title="1">{
                         deadline := time.After(3 * time.Second)
                         select </span>{
+                        <span class="cov0" title="0">case cf, ok := &lt;-s.control:
+                                if !ok </span><span class="cov0" title="0">{
+                                        return
+                                }</span>
+                                <span class="cov0" title="0">switch cf.kind </span>{
+                                <span class="cov0" title="0">case FRAME_SYN_STREAM:
+                                        err = s.initiate_stream(cf)
+                                        debug.Println("Goroutines:", runtime.NumGoroutine())</span>
+                                <span class="cov0" title="0">case FRAME_SYN_REPLY:
+                                        err = s.handleSynReply(cf)</span>
+                                <span class="cov0" title="0">case FRAME_RST_STREAM:
+                                        err = s.handleRstStream(cf)
+                                        return</span>
+                                <span class="cov0" title="0">case FRAME_WINDOW_UPDATE:
+                                        s.handleWindowUpdate(cf)</span>
+                                <span class="cov0" title="0">default:
+                                        panic("TODO: unhandled type of frame received in stream.serve()")</span>
+                                }
                         <span class="cov8" title="1">case df, ok := &lt;-s.data:
                                 //collecting data
                                 if !ok </span><span class="cov0" title="0">{
@@ -1913,19 +2109,18 @@ func (s *Stream) requestHandler(req *http.Request) <span class="cov8" title="1">
 func (s *Stream) serve() <span class="cov8" title="1">{
 
         debug.Printf("Stream #%d main loop", s.id)
-
+        s.closed = false
         err := s.stream_loop()
         if err != nil </span><span class="cov0" title="0">{
                 debug.Println("ERROR in stream loop:", err)
         }</span>
-
         <span class="cov8" title="1">s.closed = true
 
         deadline := time.After(1500 * time.Millisecond)
         select </span>{
         <span class="cov8" title="1">case s.session.end_stream &lt;- s:</span>
                 // done, all good!
-        <span class="cov0" title="0">case &lt;-deadline:
+        <span class="cov8" title="1">case &lt;-deadline:
                 // somehow it was locked
                 debug.Printf("Stream #%d: timed out and cannot be removed from the session", s.id)</span>
         }
@@ -2095,7 +2290,7 @@ func (s *Stream) handleSynReply(frame controlFrame) (err error) <span class="cov
 }
 
 // send stream cancellation
-func (s *Stream) sendRstStream() <span class="cov0" title="0">{
+func (s *Stream) sendRstStream() <span class="cov8" title="1">{
         data := new(bytes.Buffer)
         binary.Write(data, binary.BigEndian, s.id)
         // FIXME this needs some cleaning

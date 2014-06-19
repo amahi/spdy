@@ -8,6 +8,7 @@ package spdy
 
 import (
 	"bytes"
+	"crypto/tls"
 	"io"
 	"net"
 	"net/http"
@@ -151,7 +152,6 @@ type ResponseRecorder struct {
 	Code        int           // the HTTP response code from WriteHeader
 	HeaderMap   http.Header   // the HTTP response headers
 	Body        *bytes.Buffer // if non-nil, the bytes.Buffer to append written data to
-	Flushed     bool
 	wroteHeader bool
 }
 
@@ -159,4 +159,20 @@ type ResponseRecorder struct {
 type Client struct {
 	rr *ResponseRecorder
 	cn net.Conn
+	ss *Session
+}
+
+//spdy server
+type Server struct {
+	Handler   http.Handler
+	Addr      string
+	TLSConfig *tls.Config
+	ln  net.Listener
+}
+
+//spdy conn
+type conn struct {
+	srv *Server
+	ss  *Session
+	cn  net.Conn
 }

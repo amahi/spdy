@@ -2,23 +2,25 @@
 // Use of this source code is governed by the
 // license that can be found in the LICENSE file.
 
-// test functions
+// lower level test functions
 
 package spdy
 
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/binary"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"os"
 	"os/exec"
 	"runtime"
 	"sync"
-	"time"
 	"testing"
+	"time"
 )
 
 const HOST_PORT_API = "localhost:1443"
@@ -26,9 +28,10 @@ const HOST_PORT_SERVERS = "localhost:1444"
 const HOST_PORT = "localhost:1444"
 const SERVER_ROOT = "../testdata"
 
+
 type handler struct {
-        data []byte
-        rt string
+	data []byte
+	rt   string
 }
 
 type stats_s struct {
@@ -51,26 +54,26 @@ func (b *buffer) Close() error {
 	return nil
 }
 
-func (h *handler) ServeHTTP(rw http.ResponseWriter,rq *http.Request) {
-        if rq.Body!=nil {
-                h.data = make([]byte, int(rq.ContentLength))
-                _,err := rq.Body.(io.Reader).Read(h.data)
-                if err != nil {
-                        fmt.Println(err)
-                }
-                filename := "/tmp/postdat"
-                f, err := os.Create(filename)
-                if err != nil {
-                        fmt.Println(err)
-                }
-                n, err := f.Write(h.data)
-                if err != nil {
-                        fmt.Println(n, err)
-                }
-                f.Close()
-        }
-        fileserver := http.FileServer(http.Dir(h.rt))
-        fileserver.ServeHTTP(rw, rq)
+func (h *handler) ServeHTTP(rw http.ResponseWriter, rq *http.Request) {
+	if rq.Body != nil {
+		h.data = make([]byte, int(rq.ContentLength))
+		_, err := rq.Body.(io.Reader).Read(h.data)
+		if err != nil {
+			fmt.Println(err)
+		}
+		filename := "/tmp/postdat"
+		f, err := os.Create(filename)
+		if err != nil {
+			fmt.Println(err)
+		}
+		n, err := f.Write(h.data)
+		if err != nil {
+			fmt.Println(n, err)
+		}
+		f.Close()
+	}
+	fileserver := http.FileServer(http.Dir(h.rt))
+	fileserver.ServeHTTP(rw, rq)
 }
 
 type Proxy struct {
@@ -148,13 +151,13 @@ func (p *Proxy) DebugURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func p() {
-        certFile := "cert.pem"
-	keyFile := "cert.key"
+	certFile := "cert/cert.pem"
+	keyFile := "cert/cert.key"
 	proxy := new(Proxy)
 	http.HandleFunc("/", proxy.ServeC)
 
-	go func(){ // Serve C
-		err := http.ListenAndServeTLS(HOST_PORT_SERVERS,certFile, keyFile, nil)
+	go func() { // Serve C
+		err := http.ListenAndServeTLS(HOST_PORT_SERVERS, certFile, keyFile, nil)
 		handle(err)
 	}()
 
@@ -210,164 +213,249 @@ func c() {
 		c, _ := client.Hijack()
 		conn = c.(*tls.Conn)
 		server := new(http.Server)
-		server.Handler = &handler{data:nil,rt:root}
+		server.Handler = &handler{data: nil, rt: root}
 		session := NewServerSession(conn, server)
 		session.Serve()
 	}
 }
 func init() {
-        go p()
-        go c()
-        time.Sleep(time.Second)
-        handle(os.Chdir("./integration-tests"))
+	go p()
+	go c()
+	time.Sleep(time.Second)
+	handle(os.Chdir("./integration-tests"))
+	SetLog(ioutil.Discard)
 }
 func ServerTestHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
 }
 
-func TestSimpleServerClient(t *testing.T) {
-        mux := http.NewServeMux()
+func TestFrames(t *testing.T) {
+	//make server
+	mux := http.NewServeMux()
 	mux.HandleFunc("/", ServerTestHandler)
-	go ListenAndServe("localhost:4040", mux)
-	time.Sleep(time.Second)
+	server := &Server{
+		Addr:    "localhost:4040",
+		Handler: mux,
+	}
+	go server.ListenAndServe()
+	time.Sleep(200*time.Millisecond)
+
+	//make client
 	client, err := NewClient("localhost:4040")
 	if err != nil {
-                t.Fatal(err.Error())
-        }
+		t.Fatal(err.Error())
+	}
+
+	//now send requests and test
 	req, err := http.NewRequest("GET", "http://localhost:4040/banana", nil)
 	if err != nil {
-                t.Fatal(err.Error())
-        }
+		t.Fatal(err.Error())
+	}
 	res, err := client.Do(req)
 	if err != nil {
-                t.Fatal(err.Error())
-        }
+		t.Fatal(err.Error())
+	}
 	data := make([]byte, int(res.ContentLength))
 	_, err = res.Body.(io.Reader).Read(data)
-	if(string(data)!="Hi there, I love banana!") {
-	        t.Fatal("Unexpected Data")
+	if string(data) != "Hi there, I love banana!" {
+		t.Fatal("Unexpected Data")
 	}
-	
 	res.Body.Close()
+
+	//another request
+	req, err = http.NewRequest("POST", "http://localhost:4040/monkeys", bytes.NewBufferString("hello=world"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	res, err = client.Do(req)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	data = make([]byte, int(res.ContentLength))
+	_, err = res.Body.(io.Reader).Read(data)
+	if string(data) != "Hi there, I love monkeys!" {
+		t.Fatal("Unexpected Data")
+	}
+	res.Body.Close()
+
+	//settings frame test
+	set := new(settings)
+	var svp []settingsValuePairs
+	svp = append(svp, settingsValuePairs{flags: 0, id: 4, value: 6})   //set SETTINGS_MAX_CONCURRENT_STREAMS to 6
+	svp = append(svp, settingsValuePairs{flags: 0, id: 3, value: 400}) //set SETTINGS_ROUND_TRIP_TIME to 400ms
+	set.flags = 0
+	set.count = 2
+	set.svp = svp
+	buf := new(bytes.Buffer)
+	err = binary.Write(buf, binary.BigEndian, &set.count)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	for i := uint32(0); i < set.count; i++ {
+		err = binary.Write(buf, binary.BigEndian, &set.svp[i].flags)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		err = binary.Write(buf, binary.BigEndian, &set.svp[i].id)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		err = binary.Write(buf, binary.BigEndian, &set.svp[i].value)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	settings_frame := controlFrame{kind: FRAME_SETTINGS, flags: 0, data: buf.Bytes()}
+	client.ss.out <- settings_frame
+	time.Sleep(200 * time.Millisecond)
+
+	//rstStreamtest - first, start stream on client
+	str := client.ss.NewClientStream()
+	if str == nil {
+		t.Fatal("ERROR in NewClientStream: cannot create stream")
+		return
+	}
+	str.sendRstStream()
+
+	//ping test
+	ping, err := client.Ping(time.Second)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if ping == false {
+		t.Fatal("Unable to ping server from client")
+	}
+
+	//close client
+	err = client.Close()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	//server close
+	server.Close()
 }
 
 func TestGet(t *testing.T) {
-        cmd := exec.Command("bash","test-01-basic-root-dir-listing.sh")
-        out,err := cmd.Output()
-        if err != nil {
-                t.Fatal(err.Error())
-        }
-        outstr := string(out)
-        result := "Head: PASS\nBody: FAIL\n"
-        if result != outstr {
-                fmt.Println(outstr)
-                t.Fatal("Unexpected Output")
-        }
+	cmd := exec.Command("bash", "test-01-basic-root-dir-listing.sh")
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	outstr := string(out)
+	result := "Head: PASS\nBody: FAIL\n"
+	if result != outstr {
+		fmt.Println(outstr)
+		t.Fatal("Unexpected Output")
+	}
 }
 
 func TestImage(t *testing.T) {
-        cmd := exec.Command("bash","test-02-image.sh")
-        out,err := cmd.Output()
-        if err != nil {
-                t.Error(err.Error())
-        }
-        outstr := string(out)
-        result := "Head: PASS\nBody: PASS\n"
-        if result != outstr {
-                t.Error("Unexpected Output")
-        }
+	cmd := exec.Command("bash", "test-02-image.sh")
+	out, err := cmd.Output()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	outstr := string(out)
+	result := "Head: PASS\nBody: PASS\n"
+	if result != outstr {
+		t.Error("Unexpected Output")
+	}
 }
 
 func TestVideoAVI(t *testing.T) {
-        cmd := exec.Command("bash","test-03-video-avi.sh")
-        out,err := cmd.Output()
-        if err != nil {
-                t.Error(err.Error())
-        }
-        outstr := string(out)
-        result := "Head: PASS\nBody: PASS\n"
-        if result != outstr {
-                t.Error("Unexpected Output")
-        }
+	cmd := exec.Command("bash", "test-03-video-avi.sh")
+	out, err := cmd.Output()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	outstr := string(out)
+	result := "Head: PASS\nBody: PASS\n"
+	if result != outstr {
+		t.Error("Unexpected Output")
+	}
 }
 
 func TestVideoMKV(t *testing.T) {
-        cmd := exec.Command("bash","test-04-video-mkv.sh")
-        out,err := cmd.Output()
-        if err != nil {
-                t.Error(err.Error())
-        }
-        outstr := string(out)
-        result := "Head: FAIL\nBody: PASS\n"
-        if result != outstr {
-                t.Error("Unexpected Output")
-        }
+	cmd := exec.Command("bash", "test-04-video-mkv.sh")
+	out, err := cmd.Output()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	outstr := string(out)
+	result := "Head: FAIL\nBody: PASS\n"
+	if result != outstr {
+		t.Error("Unexpected Output")
+	}
 }
 
 func TestRootWithIF(t *testing.T) {
-        cmd := exec.Command("bash","test-06-root-with-if-modified.sh")
-        out,err := cmd.Output()
-        if err != nil {
-                t.Error(err.Error())
-        }
-        outstr := string(out)
-        result := "Head: FAIL\n"
-        if result != outstr {
-                t.Error("Unexpected Output")
-        }
+	cmd := exec.Command("bash", "test-06-root-with-if-modified.sh")
+	out, err := cmd.Output()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	outstr := string(out)
+	result := "Head: FAIL\n"
+	if result != outstr {
+		t.Error("Unexpected Output")
+	}
 }
 
 func TestRangeReq(t *testing.T) {
-        cmd := exec.Command("bash","test-07-range-request.sh")
-        out,err := cmd.Output()
-        if err != nil {
-                t.Error(err.Error())
-        }
-        outstr := string(out)
-        result := "Head: PASS\nBody: PASS\n"
-        if result != outstr {
-                t.Error("Unexpected Output")
-        }
+	cmd := exec.Command("bash", "test-07-range-request.sh")
+	out, err := cmd.Output()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	outstr := string(out)
+	result := "Head: PASS\nBody: PASS\n"
+	if result != outstr {
+		t.Error("Unexpected Output")
+	}
 }
 
 func TestMoviePlaySafari(t *testing.T) {
-        cmd := exec.Command("bash","test-08-movie-play-in-safari.sh")
-        out,err := cmd.Output()
-        if err != nil {
-                t.Error(err.Error())
-        }
-        outstr := string(out)
-        result := "Head: PASS\nBody: PASS\n"
-        if result != outstr {
-                t.Error("Unexpected Output")
-        }
+	cmd := exec.Command("bash", "test-08-movie-play-in-safari.sh")
+	out, err := cmd.Output()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	outstr := string(out)
+	result := "Head: PASS\nBody: PASS\n"
+	if result != outstr {
+		t.Error("Unexpected Output")
+	}
 }
 
 func TestBasicPost(t *testing.T) {
-        cmd := exec.Command("bash","test-100-basic-post.sh")
-        out,err := cmd.Output()
-        if err != nil {
-                t.Error(err.Error())
-        }
-        outstr := string(out)
-        result := "Body: PASS\nData Receive: PASS\n"
-        if result != outstr {
-                t.Error("Unexpected Output")
-        }
+	cmd := exec.Command("bash", "test-100-basic-post.sh")
+	out, err := cmd.Output()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	outstr := string(out)
+	result := "Body: PASS\nData Receive: PASS\n"
+	if result != outstr {
+		t.Error("Unexpected Output")
+	}
 }
 
 func TestHeadReq(t *testing.T) {
-        cmd := exec.Command("bash","test-101-head-req.sh")
-        out,err := cmd.Output()
-        if err != nil {
-                t.Error(err.Error())
-        }
-        outstr := string(out)
-        result := "PASS\n"
-        if result != outstr {
-                t.Error("Unexpected Output")
-        }
+	cmd := exec.Command("bash", "test-101-head-req.sh")
+	out, err := cmd.Output()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	outstr := string(out)
+	result := "PASS\n"
+	if result != outstr {
+		t.Error("Unexpected Output")
+	}
 }
+
 /*
 func TestSlowCall(t *testing.T) {
         cmd := exec.Command("bash","test-80-sloow-call.sh")

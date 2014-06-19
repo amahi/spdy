@@ -8,8 +8,10 @@ package spdy
 
 import (
 	"bytes"
+	"errors"
 	"net"
 	"net/http"
+	"time"
 )
 
 func handle(err error) {
@@ -61,28 +63,29 @@ func (rw *ResponseRecorder) WriteHeader(code int) {
 	rw.wroteHeader = true
 }
 
-// Flush sets rw.Flushed to true.
-func (rw *ResponseRecorder) Flush() {
-	if !rw.wroteHeader {
-		rw.WriteHeader(200)
-	}
-	rw.Flushed = true
+
+//returns a client that reads and writes on c
+func NewClientConn(c net.Conn) (*Client,error) {
+        session := NewClientSession(c)
+	go session.Serve()
+	return &Client{cn: c, ss: session}, nil
 }
 
+//returns a client with tcp connection created using net.Dial 
 func NewClient(addr string) (*Client, error) {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return &Client{}, err
 	}
-	return &Client{cn: conn}, nil
+	session := NewClientSession(conn)
+	go session.Serve()
+	return &Client{cn: conn, ss: session}, nil
 }
 
 //to get a response from the client
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
-	session := NewClientSession(c.cn)
-	go session.Serve()
-	c.rr = new(ResponseRecorder)
-	err := session.NewStreamProxy(req, c.rr)
+	c.rr = NewRecorder()
+	err := c.ss.NewStreamProxy(req, c.rr)
 	if err != nil {
 		return &http.Response{}, err
 	}
@@ -95,4 +98,21 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		ContentLength: int64(c.rr.Body.Len()),
 	}
 	return resp, nil
+}
+
+func (c *Client) Close() error {
+	if c.cn == nil {
+		err := errors.New("No connection to close")
+		return err
+	}
+	err := c.cn.Close()
+	return err
+}
+func (c *Client) Ping(d time.Duration) (pinged bool, err error) {
+	if c.cn == nil {
+		err := errors.New("No connection estabilished to server")
+		return false, err
+	}
+	ping := c.ss.Ping(d)
+	return ping, nil
 }
