@@ -1,4 +1,4 @@
-This is a small set of tests that exercise the client C and the proxy P.
+This is a small set of tests that exercise the client C and the proxy P which are a part of the Amahi [spdy-proxy](https://github.com/amahi/spdy-proxy) library.
 
 It requires:
  * C and P connected together and running:
