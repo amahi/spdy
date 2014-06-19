@@ -3,7 +3,7 @@ package main
 import (
         "crypto/tls"
 	"fmt"
-	"github.com/nileshjagnik/spdy"
+	"github.com/amahi/spdy"
 	"io"
 	"net/http"
 )

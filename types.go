@@ -167,7 +167,7 @@ type Server struct {
 	Handler   http.Handler
 	Addr      string
 	TLSConfig *tls.Config
-	ln  net.Listener
+	ln        net.Listener
 }
 
 //spdy conn

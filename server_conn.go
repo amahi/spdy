@@ -42,7 +42,7 @@ func (s *Server) ListenAndServe() (err error) {
 // new service goroutine for each.  The service goroutines read requests and
 // then call srv.Handler to reply to them.
 func (s *Server) Serve(ln net.Listener) (err error) {
-        s.ln = ln
+	s.ln = ln
 	defer s.ln.Close()
 	var tempDelay time.Duration // how long to sleep on accept failure
 	for {
@@ -75,7 +75,7 @@ func (s *Server) Serve(ln net.Listener) (err error) {
 //close spdy server and return
 // Any blocked Accept operations will be unblocked and return errors.
 func (s *Server) Close() (err error) {
-        return s.ln.Close()
+	return s.ln.Close()
 }
 
 // Create new connection from rw
@@ -183,7 +183,7 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string) error {
 	if err != nil {
 		return err
 	}
-        
+
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err

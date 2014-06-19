@@ -21,6 +21,81 @@ The goals for the library are reliability, streaming and performance/scalability
 
 This is not to say SPDY compliance/feature-completeness is not a priority. We're definitely interested in that, so that is an good area for contributions.
 
+Servers
+========
+
+The following example demonstrates the use of Amahi SPDY library to build a simple server.
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/amahi/spdy"
+	"net/http"
+)
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
+}
+
+func main() {
+	http.HandleFunc("/", handler)
+	
+	//use spdy's Listen and serve 
+	err := spdy.ListenAndServe("localhost:4040",nil)
+	if err != nil {
+		//error handling here
+	}
+}
+```
+
+Clients
+========
+
+Building a simple client :
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/amahi/spdy"
+	"io"
+	"net/http"
+)
+
+func main() {
+        //make a spdy client with a given address
+	client, err := spdy.NewClient("localhost:4040")
+	if err != nil {
+		//handle error here
+	}
+	
+	//make a request
+	req, err := http.NewRequest("GET", "http://localhost:4040/banana", nil)
+	if err != nil {
+		//handle error here
+	}
+	
+	//now send the request to obtain a http response
+	res, err := client.Do(req)
+	if err != nil {
+		//something went wrong
+	}
+	
+	//now handle the response
+	data := make([]byte, int(res.ContentLength))
+	_, err = res.Body.(io.Reader).Read(data)
+	fmt.Println(string(data))
+	res.Body.Close()
+}
+```
+Examples
+========
+
+We have [several examples]() to help in getting aqcuainted to the Amahi SPDY package.
+
+We also have a [reference implementation](https://github.com/amahi/spdy-proxy) of clients for the library, which contains an [origin server](https://github.com/amahi/spdy-proxy/blob/master/src/c/c.go), and a [proxy server](https://github.com/amahi/spdy-proxy/blob/master/src/p/p.go).
+
 Architecture
 ============
 
@@ -36,10 +111,6 @@ In the end there are two copies of these stacks, one on each side of the connect
 
 ![HTTP and SPDY](img/end-to-end-http.png)
 
-Examples
-========
-
-We have a [reference implementation](https://github.com/amahi/spdy-proxy) of clients for the library, which contains an [origin server](https://github.com/amahi/spdy-proxy/blob/master/src/c/c.go), and a [proxy server](https://github.com/amahi/spdy-proxy/blob/master/src/p/p.go).
 
 Testing
 =======

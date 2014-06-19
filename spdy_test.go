@@ -28,7 +28,6 @@ const HOST_PORT_SERVERS = "localhost:1444"
 const HOST_PORT = "localhost:1444"
 const SERVER_ROOT = "../testdata"
 
-
 type handler struct {
 	data []byte
 	rt   string
@@ -238,7 +237,7 @@ func TestFrames(t *testing.T) {
 		Handler: mux,
 	}
 	go server.ListenAndServe()
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	//make client
 	client, err := NewClient("localhost:4040")

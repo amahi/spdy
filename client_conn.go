@@ -63,15 +63,14 @@ func (rw *ResponseRecorder) WriteHeader(code int) {
 	rw.wroteHeader = true
 }
 
-
 //returns a client that reads and writes on c
-func NewClientConn(c net.Conn) (*Client,error) {
-        session := NewClientSession(c)
+func NewClientConn(c net.Conn) (*Client, error) {
+	session := NewClientSession(c)
 	go session.Serve()
 	return &Client{cn: c, ss: session}, nil
 }
 
-//returns a client with tcp connection created using net.Dial 
+//returns a client with tcp connection created using net.Dial
 func NewClient(addr string) (*Client, error) {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {

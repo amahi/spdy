@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/nileshjagnik/spdy"
+	"github.com/amahi/spdy"
 	"net/http"
 )
 
