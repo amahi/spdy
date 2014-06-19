@@ -92,7 +92,7 @@ func main() {
 Examples
 ========
 
-We have [several examples]() to help in getting aqcuainted to the Amahi SPDY package.
+We have [several examples](examples) to help in getting aqcuainted to the Amahi SPDY package.
 
 We also have a [reference implementation](https://github.com/amahi/spdy-proxy) of clients for the library, which contains an [origin server](https://github.com/amahi/spdy-proxy/blob/master/src/c/c.go), and a [proxy server](https://github.com/amahi/spdy-proxy/blob/master/src/p/p.go).
 
