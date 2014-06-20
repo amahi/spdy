@@ -134,6 +134,7 @@ Things implemented:
  * `SYN_STREAM`, `SYN_REPLY` and `RST_STREAM` frames
  * `WINDOW_UPDATE` and a (fixed) control flow window
  * `PING` frames
+ * Support for other all types of HTTP requests
  * DATA frames, obviously
 
 Things to be implemented:
@@ -143,7 +144,6 @@ Things to be implemented:
  * GOAWAY and HEADERS frames
  * Variable flow control window size
  * NPN negotiation
- * Support for other than HTTP GET frames, i.e. POST, PUT or any request that has a body
  * Extensive error handling for all possible rainy-day scenarios specified in the specification
  * Support for pre-3.1 SPDY standards
 
@@ -161,3 +161,4 @@ Credit goes to Jamie Hall for the patience and persistance to debug his excellen
 
 The library was started from scratch, but some isolated code like the header compression comes from Jamie's library as well as other libraries out there that we used for inspiration. The header dictionary table comes from the SPDY spec definition.
 
+The library has been extended by [Nilesh Jagnik](https://github.com/nileshjagnik) to support various new features along with the development of a Friendly API to create SPDY server and client.
