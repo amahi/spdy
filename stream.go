@@ -326,6 +326,24 @@ func (s *Stream) initiate_stream(frame controlFrame) (err error) {
 		for endflag == 0 {
 			deadline := time.After(3 * time.Second)
 			select {
+			case cf, ok := <-s.control:
+				if !ok {
+					return
+				}
+				switch cf.kind {
+				case FRAME_SYN_STREAM:
+					err = s.initiate_stream(cf)
+					debug.Println("Goroutines:", runtime.NumGoroutine())
+				case FRAME_SYN_REPLY:
+					err = s.handleSynReply(cf)
+				case FRAME_RST_STREAM:
+					err = s.handleRstStream(cf)
+					return
+				case FRAME_WINDOW_UPDATE:
+					s.handleWindowUpdate(cf)
+				default:
+					panic("TODO: unhandled type of frame received in stream.serve()")
+				}
 			case df, ok := <-s.data:
 				//collecting data
 				if !ok {
@@ -390,12 +408,11 @@ func (s *Stream) requestHandler(req *http.Request) {
 func (s *Stream) serve() {
 
 	debug.Printf("Stream #%d main loop", s.id)
-
+	s.closed = false
 	err := s.stream_loop()
 	if err != nil {
 		debug.Println("ERROR in stream loop:", err)
 	}
-
 	s.closed = true
 
 	deadline := time.After(1500 * time.Millisecond)

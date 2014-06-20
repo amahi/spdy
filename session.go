@@ -204,7 +204,6 @@ func (s *Session) frameReceiver(done chan<- bool, incoming chan<- frame) {
 	done <- true
 	debug.Printf("Session receiver ended")
 }
-
 func (s *Session) processControlFrame(frame controlFrame) (err error) {
 
 	switch frame.kind {
@@ -323,7 +322,7 @@ func (s *Session) processSynReply(frame controlFrame) (err error) {
 	return
 }
 
-// Read details for SESSIONS frame
+// Read details for SETTINGS frame
 func (s *Session) processSettings(frame controlFrame) (err error) {
 	s.settings = new(settings)
 	data := bytes.NewBuffer(frame.data)
