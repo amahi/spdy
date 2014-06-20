@@ -12,15 +12,20 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"testing"
 	"time"
 )
 
-const SERVER_CERTFILE = "../cert/serverTLS/server.pem"
-const SERVER_KEYFILE = "../cert/serverTLS/server.key"
-const CLIENT_CERTFILE = "../cert/clientTLS/client.pem"
-const CLIENT_KEYFILE = "../cert/clientTLS/client.key"
+const SERVER_CERTFILE = "cert/serverTLS/server.pem"
+const SERVER_KEYFILE = "cert/serverTLS/server.key"
+const CLIENT_CERTFILE = "cert/clientTLS/client.pem"
+const CLIENT_KEYFILE = "cert/clientTLS/client.key"
+
+func init() {
+	SetLog(ioutil.Discard)
+}
 
 //handler for requests
 func ServerHandler(w http.ResponseWriter, r *http.Request) {

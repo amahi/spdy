@@ -1,6 +1,0 @@
-HTTP/1.1 206 Partial Content
-Accept-Ranges: bytes
-Content-Length: 1536
-Content-Range: bytes 512-2047/4092532
-Content-Type: video/x-msvideo
-
