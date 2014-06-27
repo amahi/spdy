@@ -149,13 +149,35 @@ func ListenAndServe(addr string, handler http.Handler) (err error) {
 //		}
 //	}
 //
-// One can use generate_cert.go in crypto/tls to generate cert.pem and key.pem.
+// One can use makecert.sh in /certs to generate certfile and keyfile
 func ListenAndServeTLS(addr string, certFile string, keyFile string, handler http.Handler) error {
+	server := &http.Server{
+		Addr:    addr,
+		Handler: handler,
+		TLSConfig: &tls.Config{
+			NextProtos: []string{"spdy/3"},
+		},
+		TLSNextProto: map[string]func(*http.Server, *tls.Conn, http.Handler){
+			"spdy/3": nextproto3,
+		},
+	}
+	if server.Handler == nil {
+		server.Handler = http.DefaultServeMux
+	}
+	return server.ListenAndServeTLS(certFile, keyFile)
+}
+
+func nextproto3(s *http.Server, c *tls.Conn, h http.Handler) {
+	server_session := NewServerSession(c, s)
+	server_session.Serve()
+}
+
+func ListenAndServeTLSNoNPN(addr string, certFile string, keyFile string, handler http.Handler) error {
 	server := &Server{
 		Addr:    addr,
 		Handler: handler,
 	}
-	return server.ListenAndServeTLS(certFile, keyFile)
+	return server.ListenAndServeTLSNoNPN(certFile, keyFile)
 }
 
 // ListenAndServeTLS listens on the TCP network address srv.Addr and
@@ -165,7 +187,7 @@ func ListenAndServeTLS(addr string, certFile string, keyFile string, handler htt
 // the server must be provided. If the certificate is signed by a
 // certificate authority, the certFile should be the concatenation
 // of the server's certificate followed by the CA's certificate.
-func (srv *Server) ListenAndServeTLS(certFile, keyFile string) error {
+func (srv *Server) ListenAndServeTLSNoNPN(certFile, keyFile string) error {
 	addr := srv.Addr
 	if addr == "" {
 		addr = ":https"

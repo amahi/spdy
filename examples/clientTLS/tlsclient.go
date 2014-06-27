@@ -19,7 +19,7 @@ func main() {
         if err != nil {
                 fmt.Printf("server: loadkeys: %s", err)
         }
-        config := tls.Config{Certificates: []tls.Certificate{cert}, InsecureSkipVerify: true}
+        config := tls.Config{Certificates: []tls.Certificate{cert}, InsecureSkipVerify: true, NextProtos: []string{"spdy/3"}}
         conn, err := tls.Dial("tcp", "127.0.0.1:4040", &config)
         if err != nil {
                 fmt.Printf("client: dial: %s", err)
