@@ -138,7 +138,7 @@ To get a detailed report of covered code:
 Spec Coverage
 ======
 
-A document detailing parts of spdy spec covered by the Amahi SPDY library can be found in [docs/specs](docs/specs/Specsv1.1.pdf).
+A document detailing parts of spdy spec covered by the Amahi SPDY library can be found in [docs/specs](docs/specs).
 The document is labelled with the library version for which it is applicable. 
 
 Status
