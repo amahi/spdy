@@ -140,7 +140,7 @@ func TestSimpleServerClient(t *testing.T) {
 	err = <-serverdone
 }
 
-func TestTLSServer(t *testing.T) {
+func TestTLSServerNoNPN(t *testing.T) {
 	//make server
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", ServerHandler)
@@ -148,7 +148,7 @@ func TestTLSServer(t *testing.T) {
 		Addr:    "localhost:4040",
 		Handler: mux,
 	}
-	go server.ListenAndServeTLS(SERVER_CERTFILE, SERVER_KEYFILE)
+	go server.ListenAndServeTLSNoNPN(SERVER_CERTFILE, SERVER_KEYFILE)
 	time.Sleep(400 * time.Millisecond)
 
 	//client
@@ -187,4 +187,30 @@ func TestTLSServer(t *testing.T) {
 	}
 	//server close
 	server.Close()
+	time.Sleep(100 * time.Millisecond)
+}
+
+func TestTLSServerNoNPN(t *testing.T) {
+	http.HandleFunc("/", ServerHandler)
+	go ListenAndServeTLSNoNPN("localhost:4040", SERVER_CERTFILE, SERVER_KEYFILE, nil)
+	time.Sleep(200 * time.Millisecond)
+	cert, err := tls.LoadX509KeyPair(CLIENT_CERTFILE, CLIENT_KEYFILE)
+	if err != nil {
+		fmt.Printf("server: loadkeys: %s", err)
+	}
+	config := tls.Config{Certificates: []tls.Certificate{cert}, InsecureSkipVerify: true} //, NextProtos: []string{"spdy/3"}}
+	conn, err := tls.Dial("tcp", "127.0.0.1:4040", &config)
+	if err != nil {
+		fmt.Printf("client: dial: %s", err)
+	}
+	client, err := spdy.NewClientConn(conn)
+	handle(err)
+	req, err := http.NewRequest("GET", "http://localhost:4040/banana", nil)
+	handle(err)
+	res, err := client.Do(req)
+	handle(err)
+	data := make([]byte, int(res.ContentLength))
+	_, err = res.Body.(io.Reader).Read(data)
+	fmt.Println(string(data))
+	res.Body.Close()
 }

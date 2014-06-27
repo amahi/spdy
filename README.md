@@ -5,7 +5,7 @@ Coverage Release v1.1 : 72%
 
 Amahi SPDY is a library built from scratch for building SPDY clients and servers in the Go programming language. It was meant to do it in a more "Go way" than other libraries available (which use mutexes liberally). Here is a high-level picture of how it's structured:
 
-![SPDY Library Architecture](img/spdy-arch.png)
+![SPDY Library Architecture](docs/img/spdy-arch.png)
 
 It supports a subset of [SPDY 3.1](http://www.chromium.org/spdy/spdy-protocol/spdy-protocol-draft3-1).
 
@@ -91,7 +91,7 @@ Architecture
 
 The library is divided in `Session` objects and `Stream` objects as far as the external interface. Each Session and Stream may have multiple goroutines and channels to manage their structure and communication patterns. Here is an overview diagram of how the pieces fit together:
 
-![SPDY Library Architecture](img/spdy-arch.png)
+![SPDY Library Architecture](docs/img/spdy-arch.png)
 
 Each Session controls the communication between two net.Conn connected endpoints. Each Session has a server loop and in it there are two goroutines, one for sending frames from the network connection and one for receiving frames from it. These two goroutines are designed to never block. Except of course if there are network issues, which break the Session and all Streams in the Session.
 
@@ -99,7 +99,7 @@ Each Stream has a server and in it there are two goroutines, a Northbound Buffer
 
 In the end there are two copies of these stacks, one on each side of the connection.
 
-![HTTP and SPDY](img/end-to-end-http.png)
+![HTTP and SPDY](docs/img/end-to-end-http.png)
 
 The goals for the library are reliability, streaming and performance/scalability.
 
@@ -135,7 +135,12 @@ To get a detailed report of covered code:
  go test -coverprofile=coverage.out && go tool cover -html=coverage.out -o coverage.html
  ```
  
- 
+Spec Coverage
+======
+
+A document detailing parts of spdy spec covered by the Amahi SPDY library can be found in [docs/specs](docs/spec/Specsv1.1.pdf).
+The document is labelled with the library version for which it is applicable. 
+
 Status
 ======
 

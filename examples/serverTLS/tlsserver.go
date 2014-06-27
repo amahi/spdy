@@ -11,9 +11,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/", handler)
-	err := spdy.ListenAndServeTLS("localhost:4040", "server.pem", "server.key" ,nil)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
+        http.HandleFunc("/", handler)
+	spdy.ListenAndServeTLS("localhost:4040", "server.pem", "server.key" , nil)
 }

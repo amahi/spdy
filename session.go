@@ -254,7 +254,8 @@ func (s *Session) processControlFrame(frame controlFrame) (err error) {
 	case FRAME_SYN_REPLY:
 		return s.processSynReply(frame)
 	case FRAME_SETTINGS:
-		return s.processSettings(frame)
+		s.processSettings(frame)
+		return nil
 	case FRAME_RST_STREAM:
 		// just to avoid locking issues, send it in a goroutine
 		go s.processRstStream(frame)
@@ -323,6 +324,7 @@ func (s *Session) processSynReply(frame controlFrame) (err error) {
 }
 
 // Read details for SETTINGS frame
+//FIXME : shows error unexpected EOF when communicating with firefox
 func (s *Session) processSettings(frame controlFrame) (err error) {
 	s.settings = new(settings)
 	data := bytes.NewBuffer(frame.data)
@@ -369,7 +371,7 @@ func (s *Session) processRstStream(frame controlFrame) {
 	stream.control <- frame
 }
 
-// Read details for SESSIONS frame
+// Read details for PING frame
 func (s *Session) processPing(frame controlFrame) (err error) {
 	s.settings = new(settings)
 	var id uint32
