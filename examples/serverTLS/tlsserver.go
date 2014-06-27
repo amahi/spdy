@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/amahi/spdy"
+	"github.com/nileshjagnik/spdy"
 	"net/http"
 )
 
@@ -12,5 +12,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
         http.HandleFunc("/", handler)
-	spdy.ListenAndServeTLS("localhost:4040", "server.pem", "server.key" , nil)
+	err := spdy.ListenAndServeTLS("localhost:4040", "server.pem", "server.key" , nil)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
