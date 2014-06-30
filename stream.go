@@ -434,7 +434,12 @@ func (s *Stream) serve() {
 		close(s.upstream_buffer)
 	}
 	close(s.flow_add)
+	
+	// use a mutex to avoid race conditions
+	mutex_flow_add.Lock()
 	close(s.flow_req)
+	mutex_flow_add.Unlock()
+	
 	debug.Printf("Stream #%d main loop done", s.id)
 }
 
