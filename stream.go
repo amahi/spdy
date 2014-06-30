@@ -17,11 +17,15 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 const INITIAL_FLOW_CONTOL_WINDOW int32 = 64 * 1024
 const NORTHBOUND_SLOTS = 5
+
+var mutex_flow_add = &sync.Mutex{}
+var mutex_stream_closed = &sync.Mutex{}
 
 // NewClientStream starts a new Stream (in the given Session), to be used as a client
 func (s *Session) NewClientStream() *Stream {
@@ -408,12 +412,13 @@ func (s *Stream) requestHandler(req *http.Request) {
 func (s *Stream) serve() {
 
 	debug.Printf("Stream #%d main loop", s.id)
-	s.closed = false
 	err := s.stream_loop()
 	if err != nil {
 		debug.Println("ERROR in stream loop:", err)
 	}
+	mutex_stream_closed.Lock()
 	s.closed = true
+	mutex_stream_closed.Unlock()
 
 	deadline := time.After(1500 * time.Millisecond)
 	select {
@@ -709,6 +714,7 @@ func (s *Stream) flowManager(initial int32, in <-chan int32, out chan<- int32) {
 	defer no_panics()
 	sfcw := initial
 	for {
+
 		if sfcw > 0 {
 			debug.Printf("Stream #%d window size %d", s.id, sfcw)
 			select {
@@ -717,13 +723,22 @@ func (s *Stream) flowManager(initial int32, in <-chan int32, out chan<- int32) {
 					return
 				}
 				sfcw += v
-			case out <- sfcw:
-				sfcw = 0
+			default:
+				mutex_flow_add.Lock()
+				select {
+				case out <- sfcw:
+					sfcw = 0
+				}
+				mutex_flow_add.Unlock()
 			}
 		} else {
 			debug.Printf("Stream #%d window size %d", s.id, sfcw)
+			var stream_closed bool
+			mutex_stream_closed.Lock()
+			stream_closed = s.closed
+			mutex_stream_closed.Lock()
 			v, ok := <-in
-			if s.closed || !ok {
+			if stream_closed || !ok {
 				return
 			}
 			sfcw += v

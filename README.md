@@ -149,6 +149,7 @@ Things implemented:
  * `WINDOW_UPDATE` and a (fixed) control flow window
  * `PING` frames
  * Support for other all types of HTTP requests
+ * NPN negotiation
  * DATA frames, obviously
 
 Things to be implemented:
@@ -157,7 +158,6 @@ Things to be implemented:
  * Server push
  * GOAWAY and HEADERS frames
  * Variable flow control window size
- * NPN negotiation
  * Extensive error handling for all possible rainy-day scenarios specified in the specification
  * Support for pre-3.1 SPDY standards
 
