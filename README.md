@@ -1,7 +1,7 @@
 Amahi SPDY [![Build Status](https://travis-ci.org/amahi/spdy.png?branch=master)](https://travis-ci.org/amahi/spdy)
 ==========
 
-Coverage Release v1.1 : 72%
+Test coverage (v1.1): 72%
 
 Amahi SPDY is a library built from scratch for building SPDY clients and servers in the Go programming language. It was meant to do it in a more "Go way" than other libraries available (which use mutexes liberally). Here is a high-level picture of how it's structured:
 
@@ -149,14 +149,15 @@ Things implemented:
  * `WINDOW_UPDATE` and a (fixed) control flow window
  * `PING` frames
  * Support for other all types of HTTP requests
- * NPN negotiation
  * DATA frames, obviously
+ * NPN negotiation
+ * `GOAWAY` frames
 
 Things to be implemented:
  * Support for SETTINGS frames
  * Actual implementation of priorities (everything is one priority at the moment)
  * Server push
- * GOAWAY and HEADERS frames
+ * HEADERS frames
  * Variable flow control window size
  * Extensive error handling for all possible rainy-day scenarios specified in the specification
  * Support for pre-3.1 SPDY standards

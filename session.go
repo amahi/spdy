@@ -37,6 +37,7 @@ func NewServerSession(conn net.Conn, server *http.Server) *Session {
 		nextPing:     2,
 		streams:      make(map[streamID]*Stream),
 		pinger:       make(chan uint32),
+		goaway_recvd: false,
 	}
 
 	return s
@@ -264,12 +265,30 @@ func (s *Session) processControlFrame(frame controlFrame) (err error) {
 	case FRAME_WINDOW_UPDATE:
 		s.processWindowUpdate(frame)
 	case FRAME_GOAWAY:
-		panic("FIXME GOAWAY")
+		s.processGoaway(frame)
 	case FRAME_HEADERS:
 		panic("FIXME HEADERS")
 	}
 
 	return
+}
+
+func (s *Session) processGoaway(frame controlFrame) {
+	if len(frame.data) != 8 {
+		log.Println("ERROR: could not process goaway: Frame should be 8 bits long")
+		return
+	}
+	status_code := bytes.NewBuffer(frame.data[4:8])
+	var status int32
+	err := binary.Read(status_code, binary.BigEndian, &status)
+	if err != nil {
+		log.Println("ERROR: Cannot read status code from a goaway frame:", err)
+		return
+	}
+	debug.Printf("GOAWAY Frame recieved, Last-good-stream-ID: %d, Status Code: %d", frame.streamID(), status)
+
+	s.goaway_recvd = true
+	//FIXME - now do the wrap up
 }
 
 func (s *Session) processDataFrame(frame dataFrame) (err error) {
