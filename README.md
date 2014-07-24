@@ -150,14 +150,15 @@ Things implemented:
  * `PING` frames
  * Support for other all types of HTTP requests
  * DATA frames, obviously
+ * NPN negotiation
+ * `GOAWAY` frames
 
 Things to be implemented:
  * Support for SETTINGS frames
  * Actual implementation of priorities (everything is one priority at the moment)
  * Server push
- * GOAWAY and HEADERS frames
+ * HEADERS frames
  * Variable flow control window size
- * NPN negotiation
  * Extensive error handling for all possible rainy-day scenarios specified in the specification
  * Support for pre-3.1 SPDY standards
 

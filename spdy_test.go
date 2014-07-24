@@ -108,6 +108,7 @@ func TestFrames(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	//rstStreamtest - first, start stream on client
+	//FIXME - need to add a proper test
 	str := client.ss.NewClientStream()
 	if str == nil {
 		t.Fatal("ERROR in NewClientStream: cannot create stream")
@@ -123,6 +124,43 @@ func TestFrames(t *testing.T) {
 
 	if ping == false {
 		t.Fatal("Unable to ping server from client")
+	}
+
+	//close client
+	err = client.Close()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	//server close
+	server.Close()
+}
+
+func TestGoaway(t *testing.T) {
+	//make server
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", ServerTestHandler)
+	server_session_chan := make(chan *Session)
+	server := &Server{
+		Addr:    "localhost:4040",
+		Handler: mux,
+		ss_chan: server_session_chan,
+	}
+	go server.ListenAndServe()
+	time.Sleep(200 * time.Millisecond)
+
+	//make client
+	client, err := NewClient("localhost:4040")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ss := <-server_session_chan
+	dat := []byte{0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00}
+	ss.out <- controlFrame{kind: FRAME_GOAWAY, flags: 0, data: dat}
+	time.Sleep(200 * time.Millisecond)
+
+	if client.ss.NewClientStream() != nil {
+		t.Fatal("Stream Made even after goaway sent")
 	}
 
 	//close client
