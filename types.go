@@ -67,6 +67,7 @@ type Session struct {
 	server       *http.Server // http server for this session
 	nextStream   streamID     // the next stream ID
 	closed       bool         // is this session closed?
+	goaway_recvd bool         // recieved goaway
 	headerWriter *headerWriter
 	headerReader *headerReader
 	settings     *settings
@@ -168,6 +169,7 @@ type Server struct {
 	Addr      string
 	TLSConfig *tls.Config
 	ln        net.Listener
+	ss_chan   chan *Session
 }
 
 //spdy conn
