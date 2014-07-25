@@ -17,73 +17,88 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 const INITIAL_FLOW_CONTOL_WINDOW int32 = 64 * 1024
 const NORTHBOUND_SLOTS = 5
 
+var mutex_flow_add = &sync.Mutex{}
+var mutex_stream_closed = &sync.Mutex{}
+
 // NewClientStream starts a new Stream (in the given Session), to be used as a client
 func (s *Session) NewClientStream() *Stream {
-	str := &Stream{
-		id:                s.nextStreamID(),
-		session:           s,
-		priority:          4, // FIXME need to implement priorities
-		associated_stream: 0, // FIXME for pushes we need to implement it
-		control:           make(chan controlFrame),
-		data:              make(chan dataFrame),
-		response:          make(chan bool),
-		eos:               make(chan bool),
-		stop_server:       make(chan bool),
-		flow_req:          make(chan int32, 1),
-		flow_add:          make(chan int32, 1),
-		upstream_buffer:   make(chan upstream_data, NORTHBOUND_SLOTS),
-	}
+	// no stream creation after goaway has been recieved
+	if !s.goaway_recvd {
+		str := &Stream{
+			id:                s.nextStreamID(),
+			session:           s,
+			priority:          4, // FIXME need to implement priorities
+			associated_stream: 0, // FIXME for pushes we need to implement it
+			control:           make(chan controlFrame),
+			data:              make(chan dataFrame),
+			response:          make(chan bool),
+			eos:               make(chan bool),
+			stop_server:       make(chan bool),
+			flow_req:          make(chan int32, 1),
+			flow_add:          make(chan int32, 1),
+			upstream_buffer:   make(chan upstream_data, NORTHBOUND_SLOTS),
+		}
 
-	go str.serve()
+		go str.serve()
 
-	go str.northboundBufferSender()
+		go str.northboundBufferSender()
 
-	go str.flowManager(INITIAL_FLOW_CONTOL_WINDOW, str.flow_add, str.flow_req)
+		go str.flowManager(INITIAL_FLOW_CONTOL_WINDOW, str.flow_add, str.flow_req)
 
-	// add the stream to the session
+		// add the stream to the session
 
-	deadline := time.After(1500 * time.Millisecond)
-	select {
-	case s.new_stream <- str:
-		// done
-		return str
-	case <-deadline:
-		// somehow it was locked
-		debug.Printf("Stream #%d: cannot be created. Stream is hung. Resetting it.", str.id)
-		s.Close()
+		deadline := time.After(1500 * time.Millisecond)
+		select {
+		case s.new_stream <- str:
+			// done
+			return str
+		case <-deadline:
+			// somehow it was locked
+			debug.Printf("Stream #%d: cannot be created. Stream is hung. Resetting it.", str.id)
+			s.Close()
+			return nil
+		}
+	} else {
+		debug.Println("Cannot create stream after recieving goaway")
 		return nil
 	}
 }
 
 func (s *Session) newServerStream(frame controlFrame) (str *Stream, err error) {
+	// no stream creation after goaway has been recieved
+	if !s.goaway_recvd {
+		str = &Stream{
+			id:                frame.streamID(),
+			session:           s,
+			priority:          4, // FIXME need to implement priorities
+			associated_stream: 0, // FIXME for pushes we need to implement it
+			control:           make(chan controlFrame),
+			data:              make(chan dataFrame),
+			response:          make(chan bool),
+			eos:               make(chan bool),
+			stop_server:       make(chan bool),
+			flow_req:          make(chan int32, 1),
+			flow_add:          make(chan int32, 1),
+		}
 
-	str = &Stream{
-		id:                frame.streamID(),
-		session:           s,
-		priority:          4, // FIXME need to implement priorities
-		associated_stream: 0, // FIXME for pushes we need to implement it
-		control:           make(chan controlFrame),
-		data:              make(chan dataFrame),
-		response:          make(chan bool),
-		eos:               make(chan bool),
-		stop_server:       make(chan bool),
-		flow_req:          make(chan int32, 1),
-		flow_add:          make(chan int32, 1),
+		go str.serve()
+
+		go str.flowManager(INITIAL_FLOW_CONTOL_WINDOW, str.flow_add, str.flow_req)
+
+		// send the SYN_STREAM control frame to get it started
+		str.control <- frame
+		return
+	} else {
+		return nil, errors.New("Cannot create stream after recieving goaway")
 	}
 
-	go str.serve()
-
-	go str.flowManager(INITIAL_FLOW_CONTOL_WINDOW, str.flow_add, str.flow_req)
-
-	// send the SYN_STREAM control frame to get it started
-	str.control <- frame
-	return
 }
 
 // String returns the Stream ID of the Stream
@@ -332,8 +347,7 @@ func (s *Stream) initiate_stream(frame controlFrame) (err error) {
 				}
 				switch cf.kind {
 				case FRAME_SYN_STREAM:
-					err = s.initiate_stream(cf)
-					debug.Println("Goroutines:", runtime.NumGoroutine())
+					return errors.New("Multiple SYN_STREAM to single stream")
 				case FRAME_SYN_REPLY:
 					err = s.handleSynReply(cf)
 				case FRAME_RST_STREAM:
@@ -408,12 +422,13 @@ func (s *Stream) requestHandler(req *http.Request) {
 func (s *Stream) serve() {
 
 	debug.Printf("Stream #%d main loop", s.id)
-	s.closed = false
 	err := s.stream_loop()
 	if err != nil {
 		debug.Println("ERROR in stream loop:", err)
 	}
+	mutex_stream_closed.Lock()
 	s.closed = true
+	mutex_stream_closed.Unlock()
 
 	deadline := time.After(1500 * time.Millisecond)
 	select {
@@ -429,7 +444,12 @@ func (s *Stream) serve() {
 		close(s.upstream_buffer)
 	}
 	close(s.flow_add)
+
+	// use a mutex to avoid race conditions
+	mutex_flow_add.Lock()
 	close(s.flow_req)
+	mutex_flow_add.Unlock()
+
 	debug.Printf("Stream #%d main loop done", s.id)
 }
 
@@ -709,6 +729,7 @@ func (s *Stream) flowManager(initial int32, in <-chan int32, out chan<- int32) {
 	defer no_panics()
 	sfcw := initial
 	for {
+
 		if sfcw > 0 {
 			debug.Printf("Stream #%d window size %d", s.id, sfcw)
 			select {
@@ -717,13 +738,22 @@ func (s *Stream) flowManager(initial int32, in <-chan int32, out chan<- int32) {
 					return
 				}
 				sfcw += v
-			case out <- sfcw:
-				sfcw = 0
+			default:
+				mutex_flow_add.Lock()
+				select {
+				case out <- sfcw:
+					sfcw = 0
+				}
+				mutex_flow_add.Unlock()
 			}
 		} else {
 			debug.Printf("Stream #%d window size %d", s.id, sfcw)
+			var stream_closed bool
+			mutex_stream_closed.Lock()
+			stream_closed = s.closed
+			mutex_stream_closed.Lock()
 			v, ok := <-in
-			if s.closed || !ok {
+			if stream_closed || !ok {
 				return
 			}
 			sfcw += v
