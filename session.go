@@ -264,12 +264,57 @@ func (s *Session) processControlFrame(frame controlFrame) (err error) {
 	case FRAME_WINDOW_UPDATE:
 		s.processWindowUpdate(frame)
 	case FRAME_GOAWAY:
-		panic("FIXME GOAWAY")
+		s.processGoaway(frame)
 	case FRAME_HEADERS:
 		panic("FIXME HEADERS")
 	}
 
 	return
+}
+func (s *Session) SendGoaway(f frameFlags, dat []byte) {
+	s.out <- controlFrame{kind: FRAME_GOAWAY, flags: f, data: dat}
+}
+
+func (s *Session) processGoaway(frame controlFrame) {
+	if len(frame.data) != 8 {
+		log.Println("ERROR: could not process goaway: Frame should be 8 bits long")
+		return
+	}
+	status_code := bytes.NewBuffer(frame.data[4:8])
+	var status int32
+	err := binary.Read(status_code, binary.BigEndian, &status)
+	if err != nil {
+		log.Println("ERROR: Cannot read status code from a goaway frame:", err)
+		return
+	}
+
+	lst_id := frame.streamID()
+	debug.Printf("GOAWAY Frame recieved, Last-good-stream-ID: %d, Status Code: %d", lst_id, status)
+
+	//to check if some stream with ID < Last-good-stream-ID is open
+	closeSessionFlag := 0
+
+	//Start going away
+	s.goaway_recvd = true
+
+	//Close streams with ID > Last-good-stream-ID
+	for id, st := range s.streams {
+		if id > lst_id {
+			if !st.closed {
+				st.finish_stream()
+				delete(s.streams, id)
+			}
+		} else {
+			if !st.closed {
+				closeSessionFlag = 1
+			}
+		}
+	}
+
+	// Close Session if no remaining streams
+	if closeSessionFlag == 0 {
+		// maybe close the session? Even if session is not closed from this end, the sender will close it from the other end
+	}
 }
 
 func (s *Session) processDataFrame(frame dataFrame) (err error) {

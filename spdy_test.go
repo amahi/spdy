@@ -108,6 +108,7 @@ func TestFrames(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	//rstStreamtest - first, start stream on client
+	//FIXME - need to add a proper test
 	str := client.ss.NewClientStream()
 	if str == nil {
 		t.Fatal("ERROR in NewClientStream: cannot create stream")
@@ -123,6 +124,76 @@ func TestFrames(t *testing.T) {
 
 	if ping == false {
 		t.Fatal("Unable to ping server from client")
+	}
+
+	//close client
+	err = client.Close()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	//server close
+	server.Close()
+}
+
+func TestGoaway(t *testing.T) {
+	//make server
+	EnableDebug()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", ServerTestHandler)
+	server_session_chan := make(chan *Session)
+	server := &Server{
+		Addr:    "localhost:4040",
+		Handler: mux,
+		ss_chan: server_session_chan,
+	}
+	go server.ListenAndServe()
+	time.Sleep(200 * time.Millisecond)
+
+	//make client
+	client, err := NewClient("localhost:4040")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	//prepare a request
+	request, err := http.NewRequest("POST", "http://localhost:4040/banana", bytes.NewBufferString("hello world"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ss := <-server_session_chan
+
+	client_stream1 := client.ss.NewClientStream()
+	err = client_stream1.prepareRequestHeader(request)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	f := frameSynStream{session: client_stream1.session, stream: client_stream1.id, header: request.Header, flags: 2}
+	client_stream1.session.out <- f
+
+	client_stream2 := client.ss.NewClientStream()
+	err = client_stream2.prepareRequestHeader(request)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	f = frameSynStream{session: client_stream2.session, stream: client_stream2.id, header: request.Header, flags: 2}
+	client_stream2.session.out <- f
+	time.Sleep(200 * time.Millisecond)
+
+	dat := []byte{0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00}
+	ss.out <- controlFrame{kind: FRAME_GOAWAY, flags: 0, data: dat}
+	time.Sleep(200 * time.Millisecond)
+
+	if client.ss.NewClientStream() != nil {
+		t.Fatal("Stream Made even after goaway sent")
+	}
+
+	if client_stream1.closed == true {
+		t.Fatal("Stream#1 closed: unexpected")
+	}
+
+	if client_stream2.closed == false {
+		t.Fatal("Stream#2 alive: unexpected")
 	}
 
 	//close client
