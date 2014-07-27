@@ -146,7 +146,7 @@ func ListenAndServe(addr string, handler http.Handler) (err error) {
 //	func main() {
 //		http.HandleFunc("/", handler)
 //		log.Printf("About to listen on 10443. Go to https://127.0.0.1:10443/")
-//		err := http.ListenAndServeTLS(":10443", "cert.pem", "key.pem", nil)
+//		err := spdy.ListenAndServeTLS(":10443", "cert.pem", "key.pem", nil)
 //		if err != nil {
 //			log.Fatal(err)
 //		}
@@ -158,10 +158,11 @@ func ListenAndServeTLS(addr string, certFile string, keyFile string, handler htt
 		Addr:    addr,
 		Handler: handler,
 		TLSConfig: &tls.Config{
-			NextProtos: []string{"spdy/3"},
+			NextProtos: []string{"spdy/3.1", "spdy/3"},
 		},
 		TLSNextProto: map[string]func(*http.Server, *tls.Conn, http.Handler){
-			"spdy/3": nextproto3,
+			"spdy/3":   nextproto3,
+			"spdy/3.1": nextproto3,
 		},
 	}
 	if server.Handler == nil {
@@ -183,14 +184,14 @@ func ListenAndServeTLSNoNPN(addr string, certFile string, keyFile string, handle
 	return server.ListenAndServeTLSNoNPN(certFile, keyFile)
 }
 
-// ListenAndServeTLS listens on the TCP network address srv.Addr and
+// ListenAndServeTLSSpdy listens on the TCP network address srv.Addr and
 // then calls Serve to handle requests on incoming TLS connections.
 //
 // Filenames containing a certificate and matching private key for
 // the server must be provided. If the certificate is signed by a
 // certificate authority, the certFile should be the concatenation
 // of the server's certificate followed by the CA's certificate.
-func (srv *Server) ListenAndServeTLSNoNPN(certFile, keyFile string) error {
+func (srv *Server) ListenAndServeTLSSpdy(certFile, keyFile string) error {
 	addr := srv.Addr
 	if addr == "" {
 		addr = ":https"
@@ -200,7 +201,7 @@ func (srv *Server) ListenAndServeTLSNoNPN(certFile, keyFile string) error {
 		*config = *srv.TLSConfig
 	}
 	if config.NextProtos == nil {
-		config.NextProtos = []string{"http/1.1"}
+		config.NextProtos = []string{"spdy/3.1", "spdy/3"}
 	}
 	var err error
 	config.Certificates = make([]tls.Certificate, 1)
