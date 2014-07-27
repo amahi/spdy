@@ -181,7 +181,7 @@ func ListenAndServeTLSNoNPN(addr string, certFile string, keyFile string, handle
 		Addr:    addr,
 		Handler: handler,
 	}
-	return server.ListenAndServeTLSNoNPN(certFile, keyFile)
+	return server.ListenAndServeTLSSpdy(certFile, keyFile)
 }
 
 // ListenAndServeTLSSpdy listens on the TCP network address srv.Addr and
