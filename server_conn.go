@@ -155,9 +155,10 @@ func ListenAndServeTLS(addr string, certFile string, keyFile string, handler htt
 		Addr:    addr,
 		Handler: handler,
 		TLSConfig: &tls.Config{
-			NextProtos: []string{"spdy/3"},
+			NextProtos: []string{"spdy/3.1", "spdy/3"},
 		},
 		TLSNextProto: map[string]func(*http.Server, *tls.Conn, http.Handler){
+			"spdy/3.1": nextproto3,
 			"spdy/3": nextproto3,
 		},
 	}
@@ -197,7 +198,7 @@ func (srv *Server) ListenAndServeTLSNoNPN(certFile, keyFile string) error {
 		*config = *srv.TLSConfig
 	}
 	if config.NextProtos == nil {
-		config.NextProtos = []string{"http/1.1"}
+		config.NextProtos = []string{"spdy/3.1", "spdy/3"}
 	}
 	var err error
 	config.Certificates = make([]tls.Certificate, 1)
@@ -212,6 +213,7 @@ func (srv *Server) ListenAndServeTLSNoNPN(certFile, keyFile string) error {
 	}
 
 	tlsListener := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, config)
+	srv.TLSConfig = config
 	return srv.Serve(tlsListener)
 }
 
