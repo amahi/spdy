@@ -148,7 +148,7 @@ func TestTLSServerNoNPN(t *testing.T) {
 		Addr:    "localhost:4040",
 		Handler: mux,
 	}
-	go server.ListenAndServeTLSNoNPN(SERVER_CERTFILE, SERVER_KEYFILE)
+	go server.ListenAndServeTLSSpdy(SERVER_CERTFILE, SERVER_KEYFILE)
 	time.Sleep(400 * time.Millisecond)
 
 	//client
