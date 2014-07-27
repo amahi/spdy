@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func (c *conn) handleConnection() {
+func (c *conn) handleConnection(outchan chan *Session) {
 	hserve := new(http.Server)
 	if c.srv.Handler == nil {
 		hserve.Handler = http.DefaultServeMux
@@ -22,6 +22,9 @@ func (c *conn) handleConnection() {
 	}
 	hserve.Addr = c.srv.Addr
 	c.ss = NewServerSession(c.cn, hserve)
+	if outchan != nil {
+		outchan <- c.ss
+	}
 	c.ss.Serve()
 }
 
@@ -68,7 +71,7 @@ func (s *Server) Serve(ln net.Listener) (err error) {
 		if err != nil {
 			continue
 		}
-		go c.handleConnection()
+		go c.handleConnection(s.ss_chan)
 	}
 }
 
