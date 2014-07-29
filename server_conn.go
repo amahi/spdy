@@ -93,7 +93,8 @@ func (server *Server) newConn(rwc net.Conn) (c *conn, err error) {
 // ListenAndServe listens on the TCP network address addr
 // and then calls Serve with handler to handle requests
 // on incoming connections.  Handler is typically nil,
-// in which case the DefaultServeMux is used.
+// in which case the DefaultServeMux is used. This creates a spdy
+// only server without TLS
 //
 // A trivial example server is:
 //
@@ -102,6 +103,7 @@ func (server *Server) newConn(rwc net.Conn) (c *conn, err error) {
 //	import (
 //		"io"
 //		"net/http"
+//              "github.com/amahi/spdy"
 //		"log"
 //	)
 //
@@ -126,16 +128,19 @@ func ListenAndServe(addr string, handler http.Handler) (err error) {
 }
 
 // ListenAndServeTLS acts identically to ListenAndServe, except that it
-// expects HTTPS connections. Additionally, files containing a certificate and
-// matching private key for the server must be provided. If the certificate
-// is signed by a certificate authority, the certFile should be the concatenation
-// of the server's certificate followed by the CA's certificate.
+// expects HTTPS connections. Servers created this way have NPN Negotiation and
+// accept requests from both spdy and http clients.
+// Additionally, files containing a certificate and matching private
+// key for the server must be provided. If the certificate is signed by a certificate
+// authority, the certFile should be the concatenation of the server's certificate
+// followed by the CA's certificate.
 //
 // A trivial example server is:
 //
 //	import (
 //		"log"
 //		"net/http"
+//              "github.com/amahi/spdy"
 //	)
 //
 //	func handler(w http.ResponseWriter, req *http.Request) {
@@ -146,7 +151,7 @@ func ListenAndServe(addr string, handler http.Handler) (err error) {
 //	func main() {
 //		http.HandleFunc("/", handler)
 //		log.Printf("About to listen on 10443. Go to https://127.0.0.1:10443/")
-//		err := http.ListenAndServeTLS(":10443", "cert.pem", "key.pem", nil)
+//		err := spdy.ListenAndServeTLS(":10443", "cert.pem", "key.pem", nil)
 //		if err != nil {
 //			log.Fatal(err)
 //		}
@@ -162,7 +167,7 @@ func ListenAndServeTLS(addr string, certFile string, keyFile string, handler htt
 		},
 		TLSNextProto: map[string]func(*http.Server, *tls.Conn, http.Handler){
 			"spdy/3.1": nextproto3,
-			"spdy/3": nextproto3,
+			"spdy/3":   nextproto3,
 		},
 	}
 	if server.Handler == nil {
@@ -176,22 +181,23 @@ func nextproto3(s *http.Server, c *tls.Conn, h http.Handler) {
 	server_session.Serve()
 }
 
-func ListenAndServeTLSNoNPN(addr string, certFile string, keyFile string, handler http.Handler) error {
+func ListenAndServeTLSSpdyOnly(addr string, certFile string, keyFile string, handler http.Handler) error {
 	server := &Server{
 		Addr:    addr,
 		Handler: handler,
 	}
-	return server.ListenAndServeTLSNoNPN(certFile, keyFile)
+	return server.ListenAndServeTLSSpdyOnly(certFile, keyFile)
 }
 
-// ListenAndServeTLS listens on the TCP network address srv.Addr and
+// ListenAndServeTLSSpdyOnly listens on the TCP network address srv.Addr and
 // then calls Serve to handle requests on incoming TLS connections.
+// This is a spdy-only server with TLS and no NPN.
 //
 // Filenames containing a certificate and matching private key for
 // the server must be provided. If the certificate is signed by a
 // certificate authority, the certFile should be the concatenation
 // of the server's certificate followed by the CA's certificate.
-func (srv *Server) ListenAndServeTLSNoNPN(certFile, keyFile string) error {
+func (srv *Server) ListenAndServeTLSSpdyOnly(certFile, keyFile string) error {
 	addr := srv.Addr
 	if addr == "" {
 		addr = ":https"

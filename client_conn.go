@@ -95,6 +95,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		ProtoMinor:    1,
 		Body:          &readCloser{c.rr.Body},
 		ContentLength: int64(c.rr.Body.Len()),
+		Header:        c.rr.Header(),
 	}
 	return resp, nil
 }
