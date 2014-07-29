@@ -30,5 +30,6 @@ func main() {
 	data := make([]byte, int(res.ContentLength))
 	_, err = res.Body.(io.Reader).Read(data)
 	fmt.Println(string(data))
+	fmt.Println(res.Header)
 	res.Body.Close()
 }

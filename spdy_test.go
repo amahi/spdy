@@ -137,7 +137,6 @@ func TestFrames(t *testing.T) {
 
 func TestGoaway(t *testing.T) {
 	//make server
-	EnableDebug()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", ServerTestHandler)
 	server_session_chan := make(chan *Session)

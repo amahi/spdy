@@ -169,7 +169,8 @@ type Server struct {
 	Addr      string
 	TLSConfig *tls.Config
 	ln        net.Listener
-	ss_chan   chan *Session
+	//channel on which the server passes any new spdy 'Session' structs that get created during its lifetime
+	ss_chan chan *Session
 }
 
 //spdy conn

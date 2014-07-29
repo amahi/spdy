@@ -140,7 +140,7 @@ func TestSimpleServerClient(t *testing.T) {
 	err = <-serverdone
 }
 
-func TestTLSServerNoNPN(t *testing.T) {
+func TestTLSServerSpdyOnly(t *testing.T) {
 	//make server
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", ServerHandler)
@@ -148,7 +148,7 @@ func TestTLSServerNoNPN(t *testing.T) {
 		Addr:    "localhost:4040",
 		Handler: mux,
 	}
-	go server.ListenAndServeTLSNoNPN(SERVER_CERTFILE, SERVER_KEYFILE)
+	go server.ListenAndServeTLSSpdyOnly(SERVER_CERTFILE, SERVER_KEYFILE)
 	time.Sleep(400 * time.Millisecond)
 
 	//client
