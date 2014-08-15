@@ -487,7 +487,9 @@ func (s *Session) processWindowUpdate(frame controlFrame) {
 
 	id := frame.streamID()
 	if id == 0 {
-		panic("no support for session flow control yet")
+		// FIXME - rather than panic, just issue a warning, since some
+		// browsers will trigger the panic naturally
+		log.Println("WARNING: no support for session flow control yet")
 	}
 
 	stream, ok := s.streams[id]
