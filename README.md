@@ -1,4 +1,4 @@
-Amahi SPDY [![Build Status](https://travis-ci.org/amahi/spdy.png?branch=master)](https://travis-ci.org/amahi/spdy)
+Amahi SPDY [![Build Status](https://travis-ci.org/amahi/spdy.png?branch=master)](https://travis-ci.org/amahi/spdy) [![GoDoc](https://godoc.org/github.com/amahi/spdy?status.svg)](https://godoc.org/github.com/amahi/spdy)
 ==========
 
 Test coverage (v1.1): 72%
@@ -9,7 +9,7 @@ Amahi SPDY is a library built from scratch for building SPDY clients and servers
 
 It supports a subset of [SPDY 3.1](http://www.chromium.org/spdy/spdy-protocol/spdy-protocol-draft3-1).
 
-Check the online [documentation](http://godoc.org/github.com/amahi/spdy) (admittedly small, but growing).
+Check the online [documentation](http://godoc.org/github.com/amahi/spdy).
 
 This library is used in a streaming server/proxy implementation for Amahi, the [home and media server](https://www.amahi.org).
 
