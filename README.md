@@ -1,4 +1,4 @@
-Amahi SPDY [![Build Status](https://travis-ci.org/amahi/spdy.png?branch=master)](https://travis-ci.org/amahi/spdy) [![GoDoc](https://godoc.org/github.com/amahi/spdy?status.svg)](https://godoc.org/github.com/amahi/spdy)
+Amahi SPDY [![Build Status](https://travis-ci.org/amahi/spdy.png?branch=master)](https://travis-ci.org/amahi/spdy) [![GoDoc](https://godoc.org/github.com/amahi/spdy?status.svg)](https://godoc.org/github.com/amahi/spdy) [![Coverage Status](https://img.shields.io/coveralls/amahi/spdy.svg)](https://coveralls.io/r/amahi/spdy)
 ==========
 
 Test coverage (v1.1): 72%
