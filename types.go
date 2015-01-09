@@ -158,7 +158,6 @@ type ResponseRecorder struct {
 
 //spdy client
 type Client struct {
-	rr *ResponseRecorder
 	cn net.Conn
 	ss *Session
 }
