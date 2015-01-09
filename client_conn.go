@@ -83,19 +83,19 @@ func NewClient(addr string) (*Client, error) {
 
 //to get a response from the client
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
-	c.rr = NewRecorder()
-	err := c.ss.NewStreamProxy(req, c.rr)
+	rr := NewRecorder()
+	err := c.ss.NewStreamProxy(req, rr)
 	if err != nil {
 		return &http.Response{}, err
 	}
 	resp := &http.Response{
-		StatusCode:    c.rr.Code,
+		StatusCode:    rr.Code,
 		Proto:         "HTTP/1.1",
 		ProtoMajor:    1,
 		ProtoMinor:    1,
-		Body:          &readCloser{c.rr.Body},
-		ContentLength: int64(c.rr.Body.Len()),
-		Header:        c.rr.Header(),
+		Body:          &readCloser{rr.Body},
+		ContentLength: int64(rr.Body.Len()),
+		Header:        rr.Header(),
 	}
 	return resp, nil
 }
