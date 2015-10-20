@@ -661,6 +661,7 @@ func (s *Stream) northboundBufferSender() {
 			debug.Printf("Stream #%d: %d bytes successfully written upstream", s.id, size)
 			wupdate := windowUpdateFor(s.id, size)
 			s.session.out <- wupdate
+			s.session.out <- windowUpdateFor(0, size) // update session window
 		}
 		if err == nil && f.final {
 			debug.Printf("Stream #%d: last upstream data done!", s.id)
