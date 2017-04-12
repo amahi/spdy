@@ -554,6 +554,11 @@ func (s *Stream) WriteHeader(code int) {
 	}
 	// Write the frame
 	sr := frameSynReply{session: s.session, stream: s.id, headers: s.headers}
+	if s.closed {
+		// FIXME-cpg: how should this error be propagated upstream?
+		log.Println("ERROR: Attempting to send on a closed stream in ResponseWriter.WriteHeader.")
+		return
+	}
 	debug.Println("Sending SYN_REPLY", sr)
 	s.session.out <- sr
 	s.wroteHeader = true
